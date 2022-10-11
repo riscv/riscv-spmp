@@ -1,6 +1,7 @@
 = RISC-V SPMP Extension
 
 Working draft of the proposed RISC-V SPMP extension.
+You can check the link:rv-spmp-spec.pdf[Latest RISC-V SPMP] file, or build the spec from source.
 
 = License
 
