@@ -1,7 +1,20 @@
 == Contributors
 
-This RISC-V specification has been contributed to directly or indirectly by:
+The proposed SPMP specifications (non-ratified, under discussion) has been contributed to directly or indirectly by:
 
 [%hardbreaks]
-* Author1 <required1@email.com>
-* Author2 <required2@email.com>
+* Dong Du, Editor <dd_nirvana@sjtu.edu.cn>
+* Bicheng Yang
+* Nick Kossifidis
+* Andy Dellow
+* Manuel Offenberg
+* Allen Baum
+* Bill Huffman
+* Xu Lu
+* Wenhao Li
+* Yubin Xia
+* Joe Xie
+* Paul Ku
+* Jonathan Behrens
+* Robin Zheng
+* Zeyu Mi

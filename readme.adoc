@@ -1,10 +1,6 @@
-= RISC-V docs-spec-template
+= RISC-V SPMP Extension
 
-This repository is used to prime GitHub repos for the RISC-V organization which will be used
-to create specifications.
-
-**If you are reading this in a specification repo, please update the title for this section and
-provide your introduction to your repository.**
+Working draft of the proposed RISC-V SPMP extension.
 
 = License
 
