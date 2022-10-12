@@ -1,33 +1,33 @@
 [[Interaction_with_hypervisor_extension]]
 == Interaction with hypervisor extension
 
-To support both SPMP and hypervisor extension, there are some further changes. 
+There are some further changes to support both SPMP and hypervisor extension.
 
 === vSPMP extension
 
 This extension describes how SPMP is used in a guest VM.
 
 1. A set of vSPMP CSRs for the VS-mode are required, including 64 vSPMP address registers and 16 configuration registers.
-When V=1, vSPMP CSR substitutes for the usual SPMP CSR, so instructions that normally read or modify SPMP CSR actually access vSPMP CSR instead.
+When V=1, vSPMP CSR substitutes for the usual SPMP CSR, so instructions that normally read or modify SPMP CSR access vSPMP CSR instead.
 This is consistent with the paging in VS-mode (i.e., vsatp). 
-2. For HLV, HLVX, and HSV instructions, the hardware should perform vSPMP checking before G-stage address translation (or hgPMP protection when hgatp in BARE mode). 
-3. The vSPMP checking is performed in the guest physical addresses, before G-stage address translation (or hgPMP protection when hgatp in BARE mode).
+2. For HLV, HLVX, and HSV instructions, the hardware should check vSPMP before G-stage address translation (or hgPMP protection when hgatp.BARE is set to zero). 
+3. The vSPMP checking is performed in the guest physical addresses before G-stage address translation (or hgPMP protection when hgatp.BARE is set to zero).
 
 
 === hgPMP extension
 
-This extension describes how SPMP is used for protecting a hypervisor from guests (only enabled when hgatp is set to BARE mode).
+This extension describes how SPMP protects a hypervisor from guests (only enabled when hgatp.BARE is set to zero).
 
 1. When hgPMP is enabled, all guest memory accesses will be checked by hgPMP; while hypervisor (in HS mode) and HU mode applications will not be affected.
 2. A set of hgPMP CSRs for the HS-mode are required, including 64 hgPMPaddr address registers and 16 hgPMPcfg configuration registers.
-When V=1, and hgatp.MODE=Bare, hgPMP is used to provide isolation between hypervisor and guest VMs.
+When V=1, and hgatp.MODE=Bare, hgPMP provides isolation between the hypervisor and guest VMs.
 3. XLEN-bit read/write hgpmpswitch0 and hgpmpswitch1 CSRs are also provided in hgPMP, which are identical to spmpswitch0 and spmpswitch1 shown in Figure 7.
 Only hgpmpswitch0 is used for RV64.
-During context switch, the hypervisor can simply store and restore hgpmpswitch (we use hgpmpswitch to represent either hgpmpswitch0 or hgpmpswitch1) as part of the context.
+During the context switch, the hypervisor can simply store and restore hgpmpswitch (we use hgpmpswitch to represent either hgpmpswitch0 or hgpmpswitch1) as part of the context.
 An hgPMP entry is activated only when both corresponding bits in hgpmpswitch and A field of hgpmpicfg are set. (i.e., hgpmpswitch[i] & hgpmpicfg.A)
 4. The hgPMP checking is performed after the guest address translation (or vSPMP checking), before PMP checking.
 
-As hgPMP does not apply on hypervisor, the encodings of configuration registers are simplified as the following table.
+As hgPMP does not apply to the hypervisor, the encodings of configuration registers are simplified in the following table.
 
 The encodings of hgpmpcfg are shown in the table:
 

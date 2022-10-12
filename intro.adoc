@@ -1,8 +1,7 @@
 [[intro]]
 == Introduction
 
-This document describes RISC-V S-mode Physical Memory Protection (SPMP) proposal to provide isolation when MMU is not available.
-RISC-V based processors recently stimulate great interest in the emerging internet of things (IoT). However, as the page-based virtual memory (MMU) is usually not available on IoT devices, it is hard to isolate the S-mode OSes (e.g., RTOS) and user-mode applications.
-To support secure processing and isolate faults of U-mode software, it is desirable to enable S-mode OS to limit the physical addresses accessible by U-mode software on a hart.
-
+This document describes RISC-V S-mode Physical Memory Protection (SPMP) proposal to provide isolation when MMU is unavailable.
+RISC-V based processors recently stimulated great interest in the emerging internet of things (IoT). However, as page-based virtual memory (MMU) is usually unavailable on IoT devices, it is hard to isolate the S-mode OSes (e.g., RTOS) and user-mode applications.
+To support secure processing and isolate faults of U-mode software, the SPMP is desirable to enable S-mode OS to limit the physical addresses accessible by U-mode software on a hart.
 
