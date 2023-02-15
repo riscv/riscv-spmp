@@ -15,7 +15,7 @@ SPMP registers can always be modified by M-mode and S-mode software. SPMP regist
 1) S mode should be implemented
 
 
-=== Memory Protection Unit CSRs
+=== S-mode Physical Memory Protection CSRs
 
 Like PMP, SPMP entries are described by an 8-bit configuration register and one XLEN-bit address register. Some SPMP settings additionally use the address register associated with the preceding SPMP entry. The number of SPMP entries can vary by implementation, and up to 64 SPMP entries are supported in the standard.
 
