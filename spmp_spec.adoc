@@ -60,6 +60,10 @@ image::SPMP_configuration_register_format.png[title="SPMP configuration register
 
 *The reset state*: On system reset, the A field of spmp[i]cfg should be zero.
 
+[NOTE]
+====
+SPMP CSRs should be allocated contiguously starting with the lowest CSR number.
+====
 
 
 === Address Matching
@@ -138,18 +142,18 @@ Like PMP entries, SPMP entries are also statically prioritized. The lowest-numbe
 4. Otherwise, the access is checked according to the permission bits in the matching SPMP entry. It is allowed if it satisfies the permission checking with the S, R, W, or X bit corresponding to the access type.
 
 === SPMP and Paging
-The table below shows which mechanism to use. (Assume both MMU and SPMP are implemented.)
+The table below shows which mechanism to use. (Assume both paged virtual memory and SPMP are implemented.)
 
 [cols="^1,^1", stripes=even, options="header"]
 |===
 |satp|Isolation mechanism
 |satp.mode == Bare|SPMP only
-|satp.mode != Bare|MMU only
+|satp.mode != Bare|Paged Virtual Memory only
 |===
 
-We do not allow both SPMP and MMU permissions to be actived at the same time now because:
+We do not allow both SPMP and paged virtual memory permissions to be actived at the same time now because:
 (1) It will introduce one more layer to check permission for each memory access. This issue will be more serious for a guest OS that may have host SPMP and guest SPMP.
-(2) MMU can provide sufficient protection.
+(2) Paged virtual memory can provide sufficient protection.
 
 That means SPMP is enabled when `satp.mode==Bare` and  SPMP is implemented.
 
@@ -196,6 +200,6 @@ We add two CSRs called *_spmpswitch0_* and *_spmpswitch1_*, which are XLEN-bit r
 For RV64, only *_spmpswitch0_* is used.
 Each bit of this register holds the on/off status of the corresponding SPMP entry.
 During the context switch, the OS can store and restore spmpswitch as part of the context.
-An SPMP entry is activated only when both corresponding bits in spmpswitch and A field of spmpicfg are set. (i.e., spmpswitch[i] & spmp[i]cfg.A)
+An SPMP entry is activated only when both corresponding bits in spmpswitch and A field of spmpicfg are set. (i.e., spmpswitch[i] & spmp[i]cfg.A!=0)
 
 image::SPMP_domain_switch_register_format.png[title="SPMP domain switch register format (RV64)"]
