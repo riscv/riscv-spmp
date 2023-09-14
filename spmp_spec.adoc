@@ -28,7 +28,7 @@ The SPMP configuration registers are packed into CSRs the same way as PMP. For R
 For RV64, even numbered CSRs (i.e., spmpcfg0, spmpcfg2, ..., spmpcfg14) hold the configurations for the 64 SPMP entries; odd numbered CSRs (e.g., spmpcfg1) are illegal.
 Figures 1 and 2 demonstrate the first 16 entries of SPMP. The layout of the rest entries is similar.
 
-image::images/RV32_SPMP_configuration_CSR_layout.png[title="RV32 SPMP configuration CSR layout"]
+image::images/RV32_SPMP_configuration_CSR_layout.png[title="RV32 SPMP configuration CSR layout",width=430,align=center]
 
 image::images/RV64_SPMP_configuration_CSR_layout.png[title="RV64 SPMP configuration CSR layout"]
 
