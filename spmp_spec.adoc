@@ -28,9 +28,9 @@ The SPMP configuration registers are packed into CSRs the same way as PMP. For R
 For RV64, even numbered CSRs (i.e., spmpcfg0, spmpcfg2, ..., spmpcfg14) hold the configurations for the 64 SPMP entries; odd numbered CSRs (e.g., spmpcfg1) are illegal.
 Figures 1 and 2 demonstrate the first 16 entries of SPMP. The layout of the rest entries is similar.
 
-image::RV32_SPMP_configuration_CSR_layout.png[title="RV32 SPMP configuration CSR layout"]
+image::images/RV32_SPMP_configuration_CSR_layout.png[title="RV32 SPMP configuration CSR layout"]
 
-image::RV64_SPMP_configuration_CSR_layout.png[title="RV64 SPMP configuration CSR layout"]
+image::images/RV64_SPMP_configuration_CSR_layout.png[title="RV64 SPMP configuration CSR layout"]
 
 The SPMP address registers are CSRs named spmpaddr0-spmpaddr63.
 Each SPMP address register encodes bits 33-2 of 34-bit physical address for RV32, as shown in Figure 4.
@@ -38,11 +38,12 @@ For RV64, each SPMP address encodes bits 55–2 of a 56-bit physical address, as
 Fewer address bits may be implemented for specific reasons, e.g., systems with smaller physical address space.
 Implemented address bits must be contiguous and go from lower to higher bits.
 
-image::RV32_SPMP_address_register_format.png[title="SPMP address register format, RV32"]
+image::images/RV32_SPMP_address_register_format.svg[title="SPMP address register format, RV32"]
 
-image::RV64_SPMP_address_register_format.png[title="SPMP address register format, RV64"]
 
-The layout of SPMP configuration registers is the same as PMP configuration registers, as shown in Figure 6. The register is WARL.
+image::images/RV64_SPMP_address_register_format.svg[title="SPMP address register format, RV64"]
+
+The layout of SPMP configuration registers is the same as PMP configuration registers, as shown in Figure 5. The register is WARL.
 
 . The S bit marks a rule as *S-mode-only* when set and *U-mode-only* when unset.
 The encoding of ``spmpcfg.RW=01``, and the encoding ``spmpcfg.SRWX=1111``, now encode a Shared-Region.
@@ -54,10 +55,9 @@ The rules and encodings for permission are explained in section 2.4, which resem
 
 . The R/W/X bits control read, write, and instruction execution permissions.
 
-image::SPMP_configuration_register_format.png[title="SPMP configuration register format"]
+image::images/SPMP_configuration_register_format.svg[title="SPMP configuration register format"]
 
-*The number of SPMP entries*: The proposal allows 64 SPMP entries, providing 64 isolated regions concurrently. The software in S-mode (usually an OS) can virtualize more isolated regions and schedule them by switching the values in SPMP entries to provide more isolation regions.
-
+*The number of SPMP entries*: The proposal allows 64 SPMP entries, providing 64 isolated regions concurrently.
 *The reset state*: On system reset, the A field of spmp[i]cfg should be zero.
 
 [NOTE]
@@ -82,7 +82,7 @@ The encoding ``spmpcfg.RW=01`` encodes a Shared-Region and ``spmpcfg.SRWX=1000``
 +
 . A _U-mode-only_ rule is *enforced* on User modes and *denied*/*enforced* on Supervisor mode depending on the value of ``sstatus.SUM`` bit:
 +
-* If ``sstatus.SUM`` is set, a U-mode-only rule is enforced without code execution permission on Supervisor mode to ensure SMEP.
+* If ``sstatus.SUM`` is set, a U-mode-only rule is enforced without code execution permission on Supervisor mode to ensure supervisor mode execution protection.
 +
 * If ``sstatus.SUM`` is unset, a U-mode-only rule is denied on Supervisor mode.
 +
@@ -97,7 +97,7 @@ The encoding ``spmpcfg.RW=01`` encodes a Shared-Region and ``spmpcfg.SRWX=1000``
 
 The encoding and results are shown in the table:
 
-image::SPMP_Encoding_Table.png[title="SPMP Encoding Table"]
+image::images/SPMP_Encoding_Table.png[title="SPMP Encoding Table"]
 
 ////
 [cols="^1,^1,^1,^1,^1,^1,^1",stripes=even,options="header"]
@@ -160,6 +160,8 @@ That means SPMP is enabled when `satp.mode==Bare` and  SPMP is implemented.
 
 [NOTE]
 ====
+For satp MODE field, you can refer to Table 4.4 in riscv-privileged spec.
+
 If page-based virtual memory is not implemented, or when it is disabled, memory accesses check the SPMP settings synchronously, so no fence is needed.
 ====
 
@@ -167,7 +169,7 @@ If page-based virtual memory is not implemented, or when it is disabled, memory 
 Failed accesses generate an exception. SPMP follows the strategy that uses different exception codes for different cases, i.e., load, store/AMO, instruction faults for memory load, memory store/AMO and instruction fetch, respectively.
 
 The SPMP reuses exception codes of page fault for SPMP fault.
-The SPMP reuses exception codes of page fault for SPMP fault. Because page fault is typically delegated to S-mode, so does SPMP fault, we can benefit from reusing page fault.
+Because page fault is typically delegated to S-mode, so does SPMP fault, we can benefit from reusing page fault.
 S-mode software(i.e., OS) can distinguish page fault from SPMP fault by checking satp.mode (as mentioned in 2.6, SPMP and paged virtual memory will not be activated simultaneously).
 *SPMP proposes to rename page fault to SPMP/page fault for clarity*.
 
@@ -200,6 +202,6 @@ We add two CSRs called *_spmpswitch0_* and *_spmpswitch1_*, which are XLEN-bit r
 For RV64, only *_spmpswitch0_* is used.
 Each bit of this register holds the on/off status of the corresponding SPMP entry.
 During the context switch, the OS can store and restore spmpswitch as part of the context.
-An SPMP entry is activated only when both corresponding bits in spmpswitch and A field of spmpicfg are set. (i.e., spmpswitch[i] & spmp[i]cfg.A!=0)
+An SPMP entry is activated only when both corresponding bits in spmpswitch and A field of spmp[i]cfg are set. (i.e., spmpswitch[i] & spmp[i]cfg.A!=0)
 
-image::SPMP_domain_switch_register_format.png[title="SPMP domain switch register format (RV64)"]
+image::images/new_RV64_SPMP_domain_switch_register_format.svg[title="SPMP domain switch register format (RV64)"]
