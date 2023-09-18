@@ -28,9 +28,9 @@ The SPMP configuration registers are packed into CSRs the same way as PMP. For R
 For RV64, even numbered CSRs (i.e., spmpcfg0, spmpcfg2, ..., spmpcfg14) hold the configurations for the 64 SPMP entries; odd numbered CSRs (e.g., spmpcfg1) are illegal.
 Figures 1 and 2 demonstrate the first 16 entries of SPMP. The layout of the rest entries is similar.
 
-image::images/RV32_SPMP_configuration_CSR_layout.png[title="RV32 SPMP configuration CSR layout",width=430,align=center]
+image::RV32_SPMP_configuration_CSR_layout.png[title="RV32 SPMP configuration CSR layout",width=430,align=center]
 
-image::images/RV64_SPMP_configuration_CSR_layout.png[title="RV64 SPMP configuration CSR layout"]
+image::RV64_SPMP_configuration_CSR_layout.png[title="RV64 SPMP configuration CSR layout"]
 
 The SPMP address registers are CSRs named spmpaddr0-spmpaddr63.
 Each SPMP address register encodes bits 33-2 of 34-bit physical address for RV32, as shown in Figure 4.
@@ -38,10 +38,10 @@ For RV64, each SPMP address encodes bits 55–2 of a 56-bit physical address, as
 Fewer address bits may be implemented for specific reasons, e.g., systems with smaller physical address space.
 Implemented address bits must be contiguous and go from lower to higher bits.
 
-image::images/RV32_SPMP_address_register_format.svg[title="SPMP address register format, RV32"]
+image::RV32_SPMP_address_register_format.svg[title="SPMP address register format, RV32"]
 
 
-image::images/RV64_SPMP_address_register_format.svg[title="SPMP address register format, RV64"]
+image::RV64_SPMP_address_register_format.svg[title="SPMP address register format, RV64"]
 
 The layout of SPMP configuration registers is the same as PMP configuration registers, as shown in Figure 5. The register is WARL.
 
@@ -55,7 +55,7 @@ The rules and encodings for permission are explained in section 2.4, which resem
 
 . The R/W/X bits control read, write, and instruction execution permissions.
 
-image::images/SPMP_configuration_register_format.svg[title="SPMP configuration register format"]
+image::SPMP_configuration_register_format.svg[title="SPMP configuration register format"]
 
 *The number of SPMP entries*: The proposal allows 64 SPMP entries, providing 64 isolated regions concurrently.
 *The reset state*: On system reset, the A field of spmp[i]cfg should be zero.
@@ -97,7 +97,7 @@ The encoding ``spmpcfg.RW=01`` encodes a Shared-Region and ``spmpcfg.SRWX=1000``
 
 The encoding and results are shown in the table:
 
-image::images/SPMP_Encoding_Table.png[title="SPMP Encoding Table"]
+image::SPMP_Encoding_Table.png[title="SPMP Encoding Table"]
 
 ////
 [cols="^1,^1,^1,^1,^1,^1,^1",stripes=even,options="header"]
@@ -204,4 +204,4 @@ Each bit of this register holds the on/off status of the corresponding SPMP entr
 During the context switch, the OS can store and restore spmpswitch as part of the context.
 An SPMP entry is activated only when both corresponding bits in spmpswitch and A field of spmp[i]cfg are set. (i.e., spmpswitch[i] & spmp[i]cfg.A!=0)
 
-image::images/new_RV64_SPMP_domain_switch_register_format.svg[title="SPMP domain switch register format (RV64)"]
+image::RV64_SPMP_domain_switch_register_format.svg[title="SPMP domain switch register format (RV64)"]
