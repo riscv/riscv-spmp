@@ -204,4 +204,4 @@ Each bit of this register holds the on/off status of the corresponding SPMP entr
 During the context switch, the OS can store and restore spmpswitch as part of the context.
 An SPMP entry is activated only when both corresponding bits in spmpswitch and A field of spmp[i]cfg are set. (i.e., spmpswitch[i] & spmp[i]cfg.A!=0)
 
-image::RV64_SPMP_domain_switch_register_format.svg[title="SPMP domain switch register format (RV64)"]
+image::SPMP_domain_switch_register_format.svg[title="SPMP domain switch register format (RV64)"]
