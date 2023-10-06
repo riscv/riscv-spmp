@@ -208,3 +208,39 @@ During the context switch, the OS can store and restore spmpswitch as part of th
 An SPMP entry is activated only when both corresponding bits in spmpswitch and A field of spmp[i]cfg are set. (i.e., spmpswitch[i] & spmp[i]cfg.A!=0)
 
 image::SPMP_domain_switch_register_format.svg[title="SPMP domain switch register format (RV64)"]
+
+
+
+
+=== Access Methods of SPMP CSRs
+*Indirect CSR access*: The SPMP support indirect CSR access if the `Sscsrind` extension is implemented.
+The `Sscsrind` defines 1 select CSR (`siselect`) and 6 alias CSRs (`sireg[i]`).
+The each combination of `siselect` and `sireg[i]` standards for an access of corresponding SPMP CSR.
+
+[cols="^1,^2",stripes=even, options="header"]
+|===
+|siselect number|indirect CSR access of sireg[i]
+|0x1a0|sireg[1-6] -> spmpcfg[0-5]
+|0x1a1|sireg[1-6] -> spmpcfg[6-11]
+|0x1a2|sireg[1-4] -> spmpcfg[12-15]
+|0x1a3|sireg[1-6] -> spmpaddr[0-5]
+|0x1a4|sireg[1-6] -> spmpaddr[6-11]
+|0x1a5|sireg[1-6] -> spmpaddr[12-17]
+|0x1a6|sireg[1-6] -> spmpaddr[18-23]
+|0x1a7|sireg[1-6] -> spmpaddr[24-29]
+|0x1a8|sireg[1-6] -> spmpaddr[30-35]
+|0x1a9|sireg[1-6] -> spmpaddr[36-41]
+|0x1aa|sireg[1-6] -> spmpaddr[42-47]
+|0x1ab|sireg[1-6] -> spmpaddr[48-53]
+|0x1ac|sireg[1-6] -> spmpaddr[54-59]
+|0x1ad|sireg[1-4] -> spmpaddr[60-63]
+|0x1ae|sireg[1-2] -> spmpswitch[0-1]
+|===
+
+*Direct CSR access*: SPMP CSRs can be accessed directly with corresponding CSR numbers if the `Sscsrind` extension is not implemented.
+
+[NOTE]
+====
+Please refers to the specification of the `Sscsrind` extension for details of indirect CSR access.
+https://github.com/riscv/riscv-indirect-csr-access
+====
