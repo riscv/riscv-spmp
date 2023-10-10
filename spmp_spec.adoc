@@ -139,6 +139,10 @@ If PMP/ePMP is implemented, accesses succeed only if both PMP/ePMP and SPMP perm
 
 Like PMP entries, SPMP entries are also statically prioritized. The lowest-numbered SPMP entry that matches any byte of access (indicated by an address and the accessed length) determines whether that access is allowed or fails. The SPMP entry must match all bytes of access, or the access fails, irrespective of the S, R, W, and X bits.
 
+On some implementations, misaligned loads, stores, and instruction fetches may also be decomposed into multiple accesses, some of which may succeed before an exception occurs. 
+In particular, a portion of a misaligned store that passes the SPMP check may become visible, even if another portion fails the SPMP check. 
+The same behavior may manifest for floating-point stores wider than XLEN bits (e.g., the FSD instruction in RV32D), even when the store address is naturally aligned.
+
 1. If the privilege mode of the access is M, the access is ``allowed``;
 2. If the privilege mode of the access is S and no SPMP entry matches, the access is ``allowed``;
 3. If the privilege mode of the access is U and no SPMP entry matches, but at least one SPMP entry is implemented, the access is ``denied``;
