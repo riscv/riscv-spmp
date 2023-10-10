@@ -11,7 +11,7 @@ SPMP checks will be applied to all accesses for U mode and S mode, depending on 
 M-mode accesses are not affected and always pass SPMP permission checks.
 SPMP registers can always be modified by M-mode and S-mode software. 
 SPMP can grant permissions to U-mode, which has none by default. 
-And SPMP can revoke permissions from S-mode, which has all permissions by default (A typical PMP/ePMP usage would give S-mode software access to all addresses via the last PMP entry).
+SPMP can also revoke permissions from S-mode.
 
 === Requirements
 
