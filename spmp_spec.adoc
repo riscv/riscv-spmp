@@ -6,7 +6,7 @@ The SPMP is also applied to data accesses in M-mode when the MPRV bit in mstatus
 
 Like PMP, the granularity of SPMP access control settings is platform-specific and, within a platform, may vary by physical memory region. However, the standard SPMP encoding should support regions as small as four bytes. 
 
-SPMP checks can happen in parallel with PMA and PMP.
+The implementation can perform SPMP checks in parallel with PMA and PMP.
 The SPMP exception reports have higher priority than PMP or PMA exceptions (e.g., an SPMP exception will be raised if the access violates both SPMP and PMP).
 
 SPMP checks will be applied to all accesses for U mode and S mode, depending on the values in the configuration registers.
@@ -214,3 +214,42 @@ During the context switch, the OS can store and restore spmpswitch as part of th
 An SPMP entry is activated only when both corresponding bits in spmpswitch and A field of spmp[i]cfg are set. (i.e., spmpswitch[i] & spmp[i]cfg.A!=0)
 
 image::SPMP_domain_switch_register_format.svg[title="SPMP domain switch register format (RV64)"]
+
+
+
+=== Access Methods of SPMP CSRs
+How SPMP CSRs are accessed depends on whether the `Sscsrind` extension is implemented or not.
+
+*Indirect CSR access*: The SPMP supports indirect CSR access if the `Sscsrind` extension is implemented.
+The `Sscsrind` defines 1 select CSR (`siselect`) and 6 alias CSRs (`sireg[i]`).
+Each combination of `siselect` and `sireg[i]` represents an access to the corresponding SPMP CSR.
+
+[cols="^1,^2",stripes=even, options="header"]
+|===
+|siselect number|indirect CSR access of sireg[i]
+|siselect#1|sireg[1-6] -> spmpcfg[0-5]
+|siselect#2|sireg[1-6] -> spmpcfg[6-11]
+|siselect#3|sireg[1-4] -> spmpcfg[12-15]
+|siselect#4|sireg[1-6] -> spmpaddr[0-5]
+|siselect#5|sireg[1-6] -> spmpaddr[6-11]
+|siselect#6|sireg[1-6] -> spmpaddr[12-17]
+|siselect#7|sireg[1-6] -> spmpaddr[18-23]
+|siselect#8|sireg[1-6] -> spmpaddr[24-29]
+|siselect#9|sireg[1-6] -> spmpaddr[30-35]
+|siselect#10|sireg[1-6] -> spmpaddr[36-41]
+|siselect#11|sireg[1-6] -> spmpaddr[42-47]
+|siselect#12|sireg[1-6] -> spmpaddr[48-53]
+|siselect#13|sireg[1-6] -> spmpaddr[54-59]
+|siselect#14|sireg[1-4] -> spmpaddr[60-63]
+|siselect#15|sireg[1-2] -> spmpswitch[0-1]
+|===
+
+*Direct CSR access*: SPMP CSRs can be accessed directly with corresponding CSR numbers if the `Sscsrind` extension is not implemented.
+
+[NOTE]
+====
+The specific value of `siselect#1-15` will be allocated after review by the Arch Review Committee.
+
+Please refers to the specification of the `Sscsrind` extension for details of indirect CSR access.
+https://github.com/riscv/riscv-indirect-csr-access
+====
