@@ -4,7 +4,7 @@
 An optional RISC-V S-mode Physical Memory Protection (SPMP) provides per-hart supervisor-mode control registers to allow physical memory access privileges (read, write, execute) to be specified for each physical memory region.
 The SPMP is also applied to data accesses in M-mode when the MPRV bit in mstatus is set and the MPP field in mstatus contains S or U.
 
-Like PMP, the granularity of SPMP access control settings is platform-specific and, within a platform, may vary by physical memory region. However, the standard SPMP encoding should support regions as small as four bytes. 
+Like PMP, the granularity of SPMP access control settings is platform-specific and, within a platform, may vary by physical memory region. However, the standard SPMP encoding support regions as small as four bytes. 
 
 The implementation can perform SPMP checks in parallel with PMA and PMP.
 The SPMP exception reports have higher priority than PMP or PMA exceptions (e.g., an SPMP exception will be raised if the access violates both SPMP and PMP).
@@ -18,6 +18,7 @@ SPMP can also revoke permissions from S-mode.
 === Requirements
 
 1) S mode should be implemented
+2) ``sstatus.SUM`` should be WARL.
 
 
 === S-mode Physical Memory Protection CSRs
@@ -55,13 +56,14 @@ The rules and encodings for permission are explained in section 2.4, which resem
 
 . Bit 5 and 6 are reserved for future use.
 
-. The A bit will be described in the following sections (2.3).
+. The A field will be described in the following sections (2.3).
 
 . The R/W/X bits control read, write, and instruction execution permissions.
 
 image::SPMP_configuration_register_format.svg[title="SPMP configuration register format"]
 
-*The number of SPMP entries*: The proposal allows 64 SPMP entries, providing 64 isolated regions concurrently.
+*The number of SPMP entries*: Implementations may implement zero, 16, or 64 SPMP entries. 
+SPMP CSRs are accessible to M-mode and S-mode.
 *The reset state*: On system reset, the A field of spmp[i]cfg should be zero.
 
 [NOTE]
@@ -74,6 +76,8 @@ SPMP CSRs should be allocated contiguously starting with the lowest CSR number.
 
 The A field in an SPMP entry's configuration register encodes the address-matching mode of the associated SPMP address register.
 It is the same as PMP/ePMP.
+
+Please refer to the "Address Matching" subsection of PMP in the riscv-privileged spec for detailed information.
 
 === Encoding of Permissions
 
@@ -164,12 +168,12 @@ We do not allow both SPMP and paged virtual memory permissions to be actived at 
 (1) It will introduce one more layer to check permission for each memory access. This issue will be more serious for a guest OS that may have host SPMP and guest SPMP.
 (2) Paged virtual memory can provide sufficient protection.
 
-That means SPMP is enabled when `satp.mode==Bare` and  SPMP is implemented.
+That means SPMP is enabled when `satp.mode==Bare` and SPMP is implemented.
 
 
 [NOTE]
 ====
-Please refer to Table 4.4 in the riscv-privileged spec for detailed information on the satp.MODE field.
+Please refer to Table "Encoding of satp MODE field" in the riscv-privileged spec for detailed information on the satp.MODE field.
 
 If page-based virtual memory is not implemented, or when it is disabled, memory accesses check the SPMP settings synchronously, so no fence is needed.
 ====
@@ -196,7 +200,7 @@ Table of renamed exception codes:
 
 [NOTE]
 ====
-Please refer to Table 3.6 in the riscv-privileged spec for detailed information on exception codes.
+Please refer to Table "Supervisor cause register (scause) values after trap" in the riscv-privileged spec for detailed information on exception codes.
 ====
 
 *Delegation*: Unlike PMP, which uses access faults for violations, SPMP uses SPMP/page faults for violations. The benefit of using SPMP/page faults is that we can delegate the violations caused by SPMP to S-mode, while the access violations caused by PMP can still be handled by machine mode.
@@ -215,6 +219,13 @@ An SPMP entry is activated only when both corresponding bits in spmpswitch and A
 
 image::SPMP_domain_switch_register_format.svg[title="SPMP domain switch register format (RV64)"]
 
+
+[NOTE]
+====
+If the `spmpswitch` is implemented, and `spmpcfg[i].A == TOR`, the entry matches any address y such that spmpaddr[i−1] ≤ y < spmpaddr[i] (irrespective of values of spmpcfg[i-1] and spmpswitch[i-1]).
+
+// If `spmpcfg[0].A == TOR`, zero is used for the lower bound, and so it matches any address y < spmpaddr[0].
+====
 
 
 === Access Methods of SPMP CSRs
