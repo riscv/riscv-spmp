@@ -3,6 +3,11 @@
 Working draft of the proposed RISC-V SPMP extension.
 You can check the link:rv-spmp-spec.pdf[Latest RISC-V SPMP] file, or build the spec from source.
 
+The structure of the repo:
+
+* sspmp: the directory contains the specification for sspmp.
+* spmp-for-hyp: the directory contains the extensions of spmp to support virtualization/hypervisor.
+
 = License
 
 This work is licensed under a Creative Commons Attribution 4.0 International License (CC-BY-4.0).
