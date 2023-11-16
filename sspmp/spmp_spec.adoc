@@ -39,8 +39,8 @@ image::RV32_SPMP_configuration_CSR_layout.png[title="RV32 SPMP configuration CSR
 image::RV64_SPMP_configuration_CSR_layout.png[title="RV64 SPMP configuration CSR layout"]
 
 The SPMP address registers are CSRs named spmpaddr0-spmpaddr63.
-Each SPMP address register encodes bits 33-2 of 34-bit physical address for RV32, as shown in Figure 4.
-For RV64, each SPMP address encodes bits 55–2 of a 56-bit physical address, as shown in Figure 5.
+Each SPMP address register encodes bits 33-2 of 34-bit physical address for RV32, as shown in Figure 3.
+For RV64, each SPMP address encodes bits 55–2 of a 56-bit physical address, as shown in Figure 4.
 Fewer address bits may be implemented for specific reasons, e.g., systems with smaller physical address space.
 Implemented address bits must be contiguous and go from lower to higher bits.
 
