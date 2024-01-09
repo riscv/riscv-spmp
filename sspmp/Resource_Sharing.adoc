@@ -1,0 +1,42 @@
+[[PMP_Resource_Sharing]]
+== Extension of PMP Resource Sharing
+
+Given that PMP and SPMP have similar layout of address/config registers and the same address matching logic.
+Reusing registers and comparators between PMP and SPMP is benefitial to save hardware resources.
+
+Implementations can consider PMP/SPMP entries as a resource pool (called PMP Resource).
+Specifically, one entry of PMP Resource consists the address CSR, configuration CSR, and any micro-architecture states related to an PMP/SPMP entry.
+A new M-mode CSR called `mpmpdeleg` is introduced to control the sharing of PMP Resource between PMP and SPMP.
+
+If the total number of PMP Resources is: `PRMax` (short of PMP Resource Max), then PMP will have `min(PRMax, mpmpdeleg)` entries, SPMP has (`PRMax`-`min(PRMax, mpmpdeleg)`) entries.
+
+**Constraints:**
+
+. The value of `mpmpdeleg`, under RV32, can only be a multiple of 4; under RV64, it can only be a multiple of 8. This design avoids sharing the same configuration CSR between S-mode and M-mode.
+. The value of `mpmpdeleg` cannot be larger than 64 (the maximum number of supported PMP entries).
+
+Notably, the mapping between PMP Resources and PMP/SPMP entries is defined by the specific implementation.
+PMP entries will be supported contiguously, beginning with the lowest CSR number.
+Unlike PMP, SPMP entries **may not** start at the lowest CSR number and might include non-contiguous valid entries.
+For instance, given an implementation with a total of 64 PMP Resource entries, if `mpmpdeleg` is set to 32 during runtime,
+`PMPResource[0]` to `PMPResource[31]` would map to `PMP[0]` to `PMP[31]`. The remaining entries, `PMPResource[32]` to `PMPResource[63]`, could be mapped as either `SPMP[0]` to `SPMP[31]` or `SPMP[32]` to `SPMP[63]`, illustrating the flexibility in resource sharing design and implementation.
+
+Another example is that, an implementation with a total of 96 PMP Resource entries, if `mpmpdeleg` is set to 48 during runtime,
+`PMPResource[0]` to `PMPResource[47]` would map to `PMP[0]` to `PMP[47]`.
+`PMPResource[48]` to `PMPResource[63]` may map to `SPMP[48]` to `SPMP[63]`,
+and `PMPResource[64]` to `PMPResource[95]` may map to `SPMP[0]` to `SPMP[31]`.
+`SPMP[32]` to `SPMP[47]` are not implemented (from software perspective) in this case.  
+
+[NOTE]
+====
+Different mapping implementations have their own trade-offs.
+For example, mapping `PMPResource[32]` to `PMPResource[63]` onto `SPMP[0]` to `SPMP[31]` could necessitate additional hardware resources to translate the SPMP CSR index to the corresponding `PMPResource`.
+This might look something like the formula `pmp-resource-index = spmp-index + mpmpdeleg`.
+Another approach is the non-zero-start mapping.
+As an example, `PMPResource[32]` to `PMPResource[63]` could be mapped to `SPMP[32]` to `SPMP[63]`, while `SPMP[0]` to `SPMP[31]` are not implemented.
+In this scenario, the SPMP CSR index mirrors that of the `PMPResources` (when it doesn't exceed 64).
+A potential drawback is that software must be able to handle scenarios where SPMP doesn't begin at the lowest CSR number.
+Nevertheless, this is generally acceptable since S-mode software commonly inspects the available SPMP entries by enumerating CSRs at boot time and utilizes the SPMP CSR accordingly based on this probe.
+Additionally, this design choice becomes even more rational when the Sscsrind extension is implemented and in use.
+PMP Resouce Sharing extension now supports both mapping methods (and others), and the software only needs to check the usable SPMP entries before using them.
+====
