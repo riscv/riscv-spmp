@@ -66,10 +66,10 @@ image::SPMP_configuration_register_format.svg[title="SPMP configuration register
 SPMP CSRs are accessible to M-mode and S-mode.
 *The reset state*: On system reset, the A field of spmp[i]cfg should be zero.
 
-[NOTE]
-====
-SPMP CSRs should be allocated contiguously starting with the lowest CSR number.
-====
+//[NOTE]
+//====
+//SPMP CSRs should be allocated contiguously starting with the lowest CSR number.
+//====
 
 
 === Address Matching
