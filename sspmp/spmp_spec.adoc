@@ -4,10 +4,10 @@
 An optional RISC-V S-mode Physical Memory Protection (SPMP) provides per-hart supervisor-mode control registers to allow physical memory access privileges (read, write, execute) to be specified for each physical memory region.
 The SPMP is also applied to data accesses in M-mode when the MPRV bit in mstatus is set and the MPP field in mstatus contains S or U.
 
-Like PMP, the granularity of SPMP access control settings is platform-specific and, within a platform, may vary by physical memory region. However, the standard SPMP encoding support regions as small as four bytes. 
+Like PMP, the granularity of SPMP access control settings is platform-specific and, within a platform, may vary by physical memory region. However, the standard SPMP encoding supports regions as small as four bytes.
 
 The implementation can perform SPMP checks in parallel with PMA and PMP.
-The SPMP exception reports have higher priority than PMP or PMA exceptions (e.g., an SPMP exception will be raised if the access violates both SPMP and PMP).
+The SPMP exception reports have higher priority than PMP or PMA exceptions (e.g., an SPMP exception will be raised if the access violates both SPMP and PMP, as will the PMP exception).
 
 SPMP checks will be applied to all accesses for U mode and S mode, depending on the values in the configuration registers.
 M-mode accesses are not affected and always pass SPMP permission checks.
@@ -27,7 +27,7 @@ Like PMP, SPMP entries are described by an 8-bit configuration register and one 
 
 [NOTE]
 ====
-The terms, entry and rule, are similar to ePMP.
+The terms, entry and rules, are similar to ePMP.
 ====
 
 The SPMP configuration registers are packed into CSRs the same way as PMP. For RV32, 16 CSRs, spmpcfg0-spmpcfg15, hold the configurations spmp0cfg-spmp63cfg for the 64 SPMP entries.
@@ -143,7 +143,8 @@ M-mode accesses are always considered to pass SPMP checks.
 If PMP/ePMP is implemented, accesses succeed only if both PMP/ePMP and SPMP permission checks pass.
 
 
-Like PMP entries, SPMP entries are also statically prioritized. The lowest-numbered SPMP entry that matches any byte of access (indicated by an address and the accessed length) determines whether that access is allowed or fails. The SPMP entry must match all bytes of access, or the access fails, irrespective of the S, R, W, and X bits.
+Like PMP entries, SPMP entries are also statically prioritized. The lowest-numbered SPMP entry that matches any byte of access (indicated by an address and the accessed length) determines whether that access is allowed or fails. The SPMP entry must match all bytes of access.
+Otherwise, the access fails irrespective of the S, R, W, and X bits.
 
 On some implementations, misaligned loads, stores, and instruction fetches may also be decomposed into multiple accesses, some of which may succeed before an exception occurs. 
 In particular, a portion of a misaligned store that passes the SPMP check may become visible, even if another portion fails the SPMP check. 
