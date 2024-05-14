@@ -4,10 +4,10 @@
 [cols="^1,^2",stripes=even, options="header"]
 |===
 |Item|Changes
-|CSR for delegating PMPs entries|1 new CSR
 |CSRs for SPMP address|64 new CSRs
 |CSRs for SPMP configuration|16 new CSRs for RV32 and 8 for RV64
-|CSR for Domain switch|2 new CSRs for RV32 and 1 for RV64
+|CSR for domain switch|2 new CSRs for RV32 and 1 for RV64
+|CSR for resource sharing|1 new CSR
 |Renamed exception code|*_Instruction page fault_* renamed to *_Instruction SPMP/page fault_* +
 *_Load page fault_* renamed to *_Load SPMP/page fault_* +
 *_Store/AMO page fault_* renamed to *_Store/AMO SPMP/page fault_*
