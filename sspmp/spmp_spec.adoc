@@ -8,7 +8,7 @@ An optional RISC-V S-mode Physical Memory Protection (SPMP) provides per-hart su
 
 If PMP/ePMP is implemented, accesses succeed only if both PMP/ePMP and SPMP permission checks pass.
 The implementation can perform SPMP checks in parallel with PMA and PMP.
-The SPMP exception reports have higher priority than PMP or PMA exceptions (e.g., an SPMP exception will be raised if the access violates both SPMP and PMP).
+The SPMP exception reports have higher priority than PMP or PMA exceptions (e.g., an SPMP exception will be raised if the access violates both SPMP and PMP, as will the PMP exception).
 
 SPMP checks will be applied to all accesses whose effective privilege mode is S or U, including instruction fetches and data accesses in S and U mode, 
 and data accesses in M-mode when the MPRV bit in mstatus is set and the MPP field in mstatus contains S or U.
@@ -70,9 +70,10 @@ The rules and encodings for permission are explained in section 2.4, which resem
 image::SPMP_configuration_register_format.svg[title="SPMP configuration register format"]
 
 
-SPMP CSRs are accessible to M-mode and S-mode.
-
-*The reset state*: On system reset, the A field of spmp[i]cfg should be zero.
+//[NOTE]
+//====
+//SPMP CSRs should be allocated contiguously starting with the lowest CSR number.
+//====
 
 
 === Address Matching
