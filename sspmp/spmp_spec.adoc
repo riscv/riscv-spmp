@@ -187,7 +187,9 @@ That means SPMP is enabled when `satp.mode==Bare` and SPMP is implemented.
 ====
 Please refer to Table "Encoding of satp MODE field" in the riscv-privileged spec for detailed information on the satp.MODE field.
 
-If page-based virtual memory is not implemented, or when it is disabled, memory accesses check the SPMP settings synchronously, so no fence is needed.
+If page-based virtual memory is implemented, an SFENCE.VMA instruction with rs1=x0 and rs2=x0 is needed after the SPMP CSRs are written.
+If page-based virtual memory is not implemented, memory accesses check the SPMP settings synchronously, so no fence is needed.
+Please refer to hypervisor extension for additional synchronization requirements when hypervisor is implemented.
 ====
 
 === Exceptions
