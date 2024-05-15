@@ -111,7 +111,8 @@ SPMP has three kinds of rules: *S-mode-only*, *U-mode-only* and *Shared-Region* 
 +
 * If ``spmpcfg.S`` is set, the region can be used for sharing code between S-mode and U-mode, yet not writeable. S-mode and U-mode have execute permission to the region, and S-mode may also have read permission if ``spmpcfg.X`` is set.
 +
-* The encoding ``spmpcfg.SRWX=1111`` can be used for sharing data between S-mode and U-mode, where both modes only have read-only permission to the region.
+// * The encoding ``spmpcfg.SRWX=1111`` can be used for sharing data between S-mode and U-mode, where both modes only have read-only permission to the region.
+* The encoding ``spmpcfg.SRWX=1111`` is used for backward compatibility, where both S-mode and U-mode have RWX permissions.
 +
 . The encoding ``spmpcfg.SRWX=1000`` is reserved for future standard use.
 
@@ -136,6 +137,8 @@ image::SPMP_Encoding_Table.png[title="SPMP Encoding Table"]
 |===
 ////
 
+**Allow**: Access allowed.
+
 **Deny**: Access not allowed.
 
 **Enforce**: The R/W/X permissions are enforced on accesses.
@@ -146,7 +149,9 @@ image::SPMP_Encoding_Table.png[title="SPMP Encoding Table"]
 
 **RSVD**: It is reserved for future use.
 
-**SUM bit**: We re-use the sstatus.SUM (allow Supervisor User Memory access) bit of modifying the privilege with which S-mode loads and stores access to physical memory. The semantics of SUM in SPMP is consistent with those in Sv.
+**SUM bit**: The SPMP uses the sstatus.SUM (permit Supervisor User Memory access) bit to modify the privilege with which S-mode loads and stores access to physical memory. The semantics of sstatus.SUM in SPMP is consistent with those in Sv.
+
+**MXR bit**: The semantics of sstatus.MXR (Make eXecutable Readable) in SPMP is consistent with those in Sv.
 
 
 === Priority and Matching Logic
