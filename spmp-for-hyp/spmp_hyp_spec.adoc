@@ -1,45 +1,53 @@
 [[Specification]]
 == Specification
 
-There are some changes (besides sspmp) to support both SPMP and hypervisor extension.
+=== Hypervisor-Extended SPMP (hSPMP)
 
-=== vSPMP extension
+The Shpmp extension enhances the behavior of the original SPMP so that when the Hypervisor extension is present the behavior of the SPMP is enhanced to an hypervisor-extended SPMP (hSPMP). When V=0, the hSPMP acts as the baseline SPMP. When V=1 and hgatp.mode=Bare the hSPMP checks all guest memory accesses, i.e., all accesses  from VS or VU modes. The enconding permissions remain the same as for the baseline SPMP for when spmpcfg.S is clear, but enforcing the rule over VS/VU modes instead of U mode.
+// Table ?? summarizes the rule permission check encodings (refer to the baseline SPMP specification for more details).
 
-This extension describes how SPMP is used in a guest VM.
+Note that the Hypervisor Virtual Machine Load and Store instructions (HLV/HLVX/HSV) executed from M, HS or HU (when hstatus.HU is set) modes are also subject to the same hSPMP checks as when V=1.
 
-1. A set of vSPMP CSRs for the VS-mode are required, including 64 vSPMP address registers and 16 configuration registers.
-When V=1, vSPMP CSR substitutes for the usual SPMP CSR, so instructions that normally read or modify SPMP CSR access vSPMP CSR instead.
-This is consistent with the paging in VS-mode (i.e., vsatp). 
-2. For HLV, HLVX, and HSV instructions, the hardware should check vSPMP before G-stage address translation (or hgPMP protection when hgatp.BARE is set to zero). 
-3. The vSPMP checking is performed in the guest physical addresses before G-stage address translation (or hgPMP protection when hgatp.BARE is set to zero).
+//image::SPMP_Encoding_Table.png[title="hSPMP Encoding Table with spmpcfg.S=0 when V=1"]
 
-
-=== hgPMP extension
-
-This extension describes how SPMP protects a hypervisor from guests (only enabled when hgatp.BARE is set to zero).
-
-1. When hgPMP is enabled, all guest memory accesses will be checked by hgPMP; while hypervisor (in HS mode) and HU mode applications will not be affected.
-2. A set of hgPMP CSRs for the HS-mode are required, including 64 hgPMPaddr address registers and 16 hgPMPcfg configuration registers.
-When V=1, and hgatp.MODE=Bare, hgPMP provides isolation between the hypervisor and guest VMs.
-3. XLEN-bit read/write hgpmpswitch0 and hgpmpswitch1 CSRs are also provided in hgPMP, which are identical to spmpswitch0 and spmpswitch1 shown in Figure 7.
-Only hgpmpswitch0 is used for RV64.
-During the context switch, the hypervisor can simply store and restore hgpmpswitch (we use hgpmpswitch to represent either hgpmpswitch0 or hgpmpswitch1) as part of the context.
-An hgPMP entry is activated only when both corresponding bits in hgpmpswitch and A field of hgpmpicfg are set. (i.e., hgpmpswitch[i] & hgpmpicfg.A)
-4. The hgPMP checking is performed after the guest address translation (or vSPMP checking), before PMP checking.
-
-As hgPMP does not apply to the hypervisor, the encodings of configuration registers are simplified in the following table.
-
-The encodings of hgpmpcfg are shown in the table:
-
-[cols="^1,^1,^1,^1,^4",stripes=even,options="header"]
+.hSPMP Encoding Table with spmpcfg.S=0 when V=1
+[cols="^1,^1",stripes=even,options="header"]
 |===
-4+|Bits on _hgpmpcfg_ register |Result
-|S|R|W|X|V Mode (VS + VU)
-|0|0|0|0|Inaccessible region (Access Exception)
-|0|0|0|1|Execute-only region
-|0|1|0|0|Read-only region
-|0|1|0|1|Read/Execute region
-|0|1|1|0|Read/Write region
-|0|1|1|1|Read/Write/Execute region
-4+|Others|Reserved
+|spmpcfg|VS/VU-mode
+|R - -|Enforce
+|R - X|Enforce
+|- - X|Enforce
+|- - -|Enforce
+|R W -|Enforce
+|R W X|Enforce
+|- W X|RSVD
+|- W -|RSVD
 |===
+
+When a guest access is denied by the hSPMP an exception is generated. Depending on the type of access (i.e., load, store/AMO, or instruction fetch) a different kind of fault is generated. The hSPMP reuses exception codes from the Hypervisor extension for guest page faults since SPMP protection and paged virtual memory are mutually exclusive and cannot be active at the same time as the SPMP is only enabled when satp.mode == Bare. Essentially this extension renames these exception codes as detailed in Table ?? seen next.
+
+[cols="^1,^1,^1", stripes=even, options="header"]
+|===
+|Interrupt|Exception Code|Description
+|0|20|Instruction guest-access/page fault
+|0|21|Load guest-access/page fault
+|0|23|Store/AMO guest-access/page fault
+|===
+
+The hSPMP adds an extra hypervisor WARL CSR pair to the SPMP, hspmpswitch0-1. When V=1 these CSRs take the role of the original spmpswitch0-1. This means that, when V=1, hSPMP entry is active only when both corresponding bits in hspmpswitch and spmp[i]cfg,A are set. When V=0, these registers have no effect.
+
+=== Guest/Virtual SPMP (vSPMP)
+
+This extension introduces a new PMP, the vSPMP, behaving exactly as the original SPMP, but under the control of VS-mode and checking accesses from VS and VU modes, therefore only active when V=1. Essentially, this extension introduces a two-stage SPMP before the PMP/ePMP (Figure ??). From a logical point of view, when both vsatp.mode and hgatp.mode are set to Bare, guest accesses (i.e., originating from VS/VU) are first checked by the the vSPMP, and if allowed, then checked by the hSPMP. Meaning that if the access is denied both by the vSPMP and the hSPMP, an SPMP fault is generated (i.e., fault with exception code 12, 13 or 15). The implementation can perform vSPMP checks in parallel with hSPMP cheks.
+
+image::hpmp.png[title="Dual-Stage SPMP",align="center"]
+
+For the purposes of full aligment with the baseline Hypervisor specification, and from a logical point of view, addresses used before vSPMP checks are considered to be guest virtual addresses (GVA), and those checked by the hSPMP are guest physical addresses (GPA).
+
+If vsatp.mode is set to Bare but hgatp.mode is not, the vSPMP check is logically followed by the usual G-stage translation. Implementations can implement them in parallel.
+
+If vsatp.mode is not set to bare, but hgapt.mode is, the hSPMP happens logically after the VS-stage transaction. Implementations must use the guest physical address (GPA), resulting from the VS-stage translation, to perform the hSPMP check, meaning a parallel check is not feasible unless speculation is employed.
+
+VS mode controls the vSPMP through a number of new virtual supervisors CSRs (VS CSRs), replicas of the normal SPMP supervisor CSRs. These include vspmpcfg0-3, vspmpaddr0-64 CSRS, and vspmpswitch0-1. As with the virtual supervisors CSRs in the baseline Hypervisor specification, when V=1, accesses to original SPMP CSRs, are diverted to these VS CSRs.
+
+The number of vSPMP entries can vary by implementation, and up to 64 SPMP entries are supported in the standard.

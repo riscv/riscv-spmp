@@ -3,3 +3,5 @@
 
 RISC-V S-mode Physical Memory Protection (SPMP) is an extension to provide isolation when MMU is unavailable or disabled.
 This specification introduces the extension to support SPMP and hypervisor extension.
+
+TODO: motivation for adding SPMP hypervisor support with example use cases from target application domains
