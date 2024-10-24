@@ -4,18 +4,22 @@
 Given that PMP and SPMP have similar layout of address/config registers and the same address matching logic.
 Reusing registers and comparators between PMP and SPMP may be benefitial (in some cases) to save hardware resources.
 This section introduces the resource sharing extension that can support dynamic reallocation of hardware resource between PMP/ePMP and SPMP.
-Notably, this extension is not mandatory and a specific implementation can still statically implement the numbers of regions in PMP/ePMP and SPMP.
+Notably, **this extension is not mandatory** and a specific implementation can still statically implement the numbers of regions in PMP/ePMP and SPMP.
 
 Implementations can consider PMP/SPMP entries as a resource pool (called PMP Resource).
 Specifically, one entry of PMP Resource consists the address CSR, configuration CSR, and any micro-architecture states related to an PMP/SPMP entry.
 A new M-mode CSR called `mpmpimppart` is introduced to control the sharing of PMP Resource between PMP and SPMP.
 
-The CSR has two fields:
+The 16-bit CSR shown in <<mpmpimppart_format>> has two fields:
 
 . `pmpimp`: 7-bit, allowing a value of 0--64 to specify the number of PMP entries
 . `spmpimp`: 7-bit, allowing a value of 0--64 to specify the number of SPMP entries
 
 The above two fields allow each of the PMP and SPMP to be of different entries, giving extra flexibility.
+
+[[mpmpimppart_format]]
+image::mpmpimppart_format.svg[title="mpmpimppart register format"]
+
 
 **Constraints:**
 

@@ -20,8 +20,18 @@ SPMP can also revoke permissions from S-mode.
 === Requirements
 
 1) S mode should be implemented
+
 2) ``sstatus.SUM`` should be WARL.
 
+3) ``sstatus.MXR`` should be WARL.
+
+
+[NOTE]
+====
+1. The SPMP uses the sstatus.SUM (permit Supervisor User Memory access) bit to modify the privilege with which S-mode loads and stores access to physical memory, sstatus.SUM should be WARL and the semantics of sstatus.SUM in SPMP is consistent with those in Sv.
+
+2. To better support M-mode emulation handler (e.g., the emulation handler needs to read instructions with MXR=1 MPRV=1), sstatus.MXR (Make eXecutable Readable) should be WARL and the semantics of MXR in SPMP is consistent with those in Sv.
+====
 
 === S-mode Physical Memory Protection CSRs
 
@@ -29,7 +39,7 @@ Like PMP, SPMP entries are described by an 8-bit configuration register and one 
 
 The SPMP configuration registers are packed into CSRs the same way as PMP. For RV32, 16 CSRs, spmpcfg0-spmpcfg15, hold the configurations spmp0cfg-spmp63cfg for the 64 SPMP entries.
 For RV64, even numbered CSRs (i.e., spmpcfg0, spmpcfg2, ..., spmpcfg14) hold the configurations for the 64 SPMP entries; odd numbered CSRs (e.g., spmpcfg1) are illegal.
-Figures 1 and 2 demonstrate the first 16 entries of SPMP. The layout of the rest entries is similar.
+<<RV32_cfg>> and <<RV64_cfg>> demonstrate the first 16 entries of SPMP. The layout of the rest entries is similar.
 
 [NOTE]
 ====
@@ -39,24 +49,24 @@ The implementation should decode all SPMP CSRs, and it can modify the number of 
 
 The lowest-numbered SPMP entries must be implemented first.
 ====
-
+[[RV32_cfg]]
 image::RV32_SPMP_configuration_CSR_layout.png[title="RV32 SPMP configuration CSR layout",width=430,align=center]
-
+[[RV64_cfg]]
 image::RV64_SPMP_configuration_CSR_layout.png[title="RV64 SPMP configuration CSR layout"]
 
 The SPMP address registers are CSRs named spmpaddr0-spmpaddr63.
-Each SPMP address register encodes bits 33-2 of 34-bit physical address for RV32, as shown in Figure 3.
-For RV64, each SPMP address encodes bits 55-2 of a 56-bit physical address, as shown in Figure 4.
+Each SPMP address register encodes bits 33-2 of 34-bit physical address for RV32, as shown in <<RV32_addr>>.
+For RV64, each SPMP address encodes bits 55-2 of a 56-bit physical address, as shown in <<RV64_addr>>.
 Fewer address bits may be implemented for specific reasons, e.g., systems with smaller physical address space.
 The number of address bits should be the same for all *writable SPMP entries*.
 Implemented address bits must extend to the LSB format, except as otherwise permitted by granularity rules in "Address Matching" subsection of PMP.
 
+[[RV32_addr]]
 image::RV32_SPMP_address_register_format.svg[title="SPMP address register format, RV32"]
-
-
+[[RV64_addr]]
 image::RV64_SPMP_address_register_format.svg[title="SPMP address register format, RV64"]
 
-The layout of SPMP configuration registers is the same as PMP configuration registers, as shown in Figure 5, each field is WARL.
+The layout of SPMP configuration registers is the same as PMP configuration registers, as shown in <<cfg_format>>, each field is WARL.
 The rules and encodings for permission are explained in section 2.4, which resembles the encoding of ePMP (except SPMP does not use locked rules).
 
 . The S bit marks a rule as *S-mode-only* when set and *U-mode-only* when unset.
@@ -67,6 +77,7 @@ The rules and encodings for permission are explained in section 2.4, which resem
 
 . The R/W/X bits control read, write, and instruction execution permissions.
 
+[[cfg_format]]
 image::SPMP_configuration_register_format.svg[title="SPMP configuration register format"]
 
 
@@ -116,9 +127,10 @@ SPMP has three kinds of rules: *S-mode-only*, *U-mode-only* and *Shared-Region* 
 +
 . The encoding ``spmpcfg.SRWX=1000`` is reserved for future standard use.
 
-The encoding and results are shown in the table:
+The encoding and results are shown in <<encoding>>:
 
-image::SPMP_Encoding_Table.png[title="SPMP Encoding Table"]
+[[encoding]]
+image::SPMP_Encoding_Table_v3.svg[title="SPMP Encoding Table"]
 
 ////
 [cols="^1,^1,^1,^1,^1,^1,^1",stripes=even,options="header"]
@@ -137,9 +149,9 @@ image::SPMP_Encoding_Table.png[title="SPMP Encoding Table"]
 |===
 ////
 
-**Allow**: Access allowed.
+**Allow**: Access succeeds.
 
-**Deny**: Access not allowed.
+**Deny**: Access fails.
 
 **Enforce**: The R/W/X permissions are enforced on accesses.
 
@@ -151,7 +163,6 @@ image::SPMP_Encoding_Table.png[title="SPMP Encoding Table"]
 
 **SUM bit**: The SPMP uses the sstatus.SUM (permit Supervisor User Memory access) bit to modify the privilege with which S-mode loads and stores access to physical memory. The semantics of sstatus.SUM in SPMP is consistent with those in Sv.
 
-**MXR bit**: The semantics of sstatus.MXR (Make eXecutable Readable) in SPMP is consistent with those in Sv.
 
 
 === Priority and Matching Logic
@@ -225,12 +236,13 @@ Please refer to Table "Supervisor cause register (scause) values after trap" in 
 With SPMP, each context switch requires the OS to store 64 address registers and 8 configuration registers (RV64), which is costly and unnecessary.
 So the SPMP proposes an optimization to minimize the overhead caused by context switching.
 
-We add two CSRs called *_spmpswitch0_* and *_spmpswitch1_*, which are XLEN-bit read/write registers, as shown in Figure 7.
+We add two CSRs called *_spmpswitch0_* and *_spmpswitch1_*, which are XLEN-bit read/write registers, as shown in <<switch_format>>.
 For RV64, only *_spmpswitch0_* is used.
 Each bit of this register holds the on/off status of the corresponding SPMP entry.
 During the context switch, the OS can store and restore spmpswitch as part of the context.
 An SPMP entry is activated only when both corresponding bits in spmpswitch and A field of spmp[i]cfg are set. (i.e., spmpswitch[i] & spmp[i]cfg.A!=0)
 
+[[switch_format]]
 image::SPMP_domain_switch_register_format.svg[title="SPMP domain switch register format (RV64)"]
 
 
