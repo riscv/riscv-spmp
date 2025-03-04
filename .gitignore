@@ -1,2 +1,3 @@
 *.pdf
-
+sspmp/.asciidoctor
+sspmp/images/diag-*.svg
