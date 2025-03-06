@@ -28,9 +28,11 @@ SPMP can also revoke permissions from S-mode.
 
 [NOTE]
 ====
-1. The SPMP uses the sstatus.SUM (permit Supervisor User Memory access) bit to modify the privilege with which S-mode loads and stores access to physical memory, sstatus.SUM should be WARL and the semantics of sstatus.SUM in SPMP is consistent with those in Sv.
+The Privileged Architecture specification states that ``sstatus.SUM`` and ``sstatus.MXR`` should have no effect when page-based virtual memory is not in effect and thus should be read-only 0 if S-mode is not supported or if satp.MODE is read-only 0. However, when the SPMP is present:
 
-2. To better support M-mode emulation handler (e.g., the emulation handler needs to read instructions with MXR=1 MPRV=1), sstatus.MXR (Make eXecutable Readable) should be WARL and the semantics of MXR in SPMP is consistent with those in Sv.
+1. The SPMP uses the sstatus.SUM (permit Supervisor User Memory access) bit to modify the privilege with which S-mode loads and stores access to physical memory, sstatus.SUM should be WARL and the semantics of sstatus.SUM in SPMP is consistent with those in used in Sv (page-based virtual memory).
+
+2. To better support M-mode emulation handler (e.g., the emulation handler needs to read instructions with MXR=1 MPRV=1), sstatus.MXR (Make eXecutable Readable) should be WARL and the semantics of MXR in SPMP is consistent with those in Sv (page-based virtual memory).
 ====
 
 === S-mode Physical Memory Protection CSRs
@@ -153,7 +155,7 @@ image::SPMP_Encoding_Table_v3.svg[title="SPMP Encoding Table"]
 
 **RSVD**: It is reserved for future use.
 
-**SUM bit**: The SPMP uses the sstatus.SUM (permit Supervisor User Memory access) bit to modify the privilege with which S-mode loads and stores access to physical memory. The semantics of sstatus.SUM in SPMP is consistent with those in Sv.
+**SUM bit**: The SPMP uses the sstatus.SUM (permit Supervisor User Memory access) bit to modify the privilege with which S-mode loads and stores access to physical memory. The semantics of sstatus.SUM in SPMP is consistent with those in Sv (page-based virtual memory).
 
 
 
