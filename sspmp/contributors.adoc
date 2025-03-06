@@ -4,7 +4,7 @@ The proposed SPMP specifications (non-ratified, under discussion) has been contr
 
 [%hardbreaks]
 * Dong Du, Editor <dd_nirvana@sjtu.edu.cn>
-* Bicheng Yang
+* Bicheng Yang, Editor <bichengyang@sjtu.edu.cn>
 * Nick Kossifidis
 * Andy Dellow
 * Manuel Offenberg
@@ -19,3 +19,7 @@ The proposed SPMP specifications (non-ratified, under discussion) has been contr
 * Robin Zheng
 * Zeyu Mi
 * Fabrice Marinet
+* José Martins
+* Thomas Roecker
+* Sandro Pinto
+* Rongchuan Liu
