@@ -139,11 +139,9 @@ SPMP has three kinds of rules: *S-mode-only*, *U-mode-only* and *Shared-Region* 
 The encoding and results are shown in the <<spmpencode>>:
 
 [[spmpencode]]
-image::SPMP_Encoding_Table_v3.svg[title="SPMP Encoding Table"]
+image::SPMP_Encoding_Table_v4.svg[title="SPMP Encoding Table"]
 // .SPMP Encoding Table.
 // include::images/bytefield/spmpencode.adoc[]
-
-**Allow**: Access succeeds.
 
 **Deny**: Access fails.
 
