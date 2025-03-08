@@ -4,6 +4,7 @@
 [cols="^1,^2",stripes=even, options="header"]
 |===
 |Item|Changes
+|CSR for SPMP control| 1 new CSR
 |CSRs for SPMP address|64 new CSRs
 |CSRs for SPMP configuration|16 new CSRs for RV32 and 8 for RV64
 |CSR for domain switch|2 new CSRs for RV32 and 1 for RV64

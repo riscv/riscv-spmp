@@ -8,7 +8,7 @@ An optional RISC-V S-mode Physical Memory Protection (SPMP) provides per-hart su
 
 If PMP/ePMP is implemented, accesses succeed only if both PMP/ePMP and SPMP permission checks pass.
 The implementation can perform SPMP checks in parallel with PMA and PMP.
-The SPMP exception reports have higher priority than PMP or PMA exceptions (e.g., an SPMP exception will be raised if the access violates both SPMP and PMP, as will the PMP exception).
+The SPMP exception reports have higher priority than PMP or PMA exceptions (i.e., if the access violates both SPMP and PMP/PMA, the SPMP exception will be reported).
 
 SPMP checks will be applied to all accesses whose effective privilege mode is S or U, including instruction fetches and data accesses in S and U mode, 
 and data accesses in M-mode when the MPRV bit in mstatus is set and the MPP field in mstatus contains S or U.
@@ -28,10 +28,27 @@ SPMP can also revoke permissions from S-mode.
 
 [NOTE]
 ====
-1. The SPMP uses the sstatus.SUM (permit Supervisor User Memory access) bit to modify the privilege with which S-mode loads and stores access to physical memory, sstatus.SUM should be WARL and the semantics of sstatus.SUM in SPMP is consistent with those in Sv.
+The Privileged Architecture specification states that ``sstatus.SUM`` and ``sstatus.MXR`` should have no effect when page-based virtual memory is not in effect and thus should be read-only 0 if S-mode is not supported or if satp.MODE is read-only 0. However, when the SPMP is present:
 
-2. To better support M-mode emulation handler (e.g., the emulation handler needs to read instructions with MXR=1 MPRV=1), sstatus.MXR (Make eXecutable Readable) should be WARL and the semantics of MXR in SPMP is consistent with those in Sv.
+1. The SPMP uses the sstatus.SUM (permit Supervisor User Memory access) bit to modify the privilege with which S-mode loads and stores access to physical memory, sstatus.SUM should be WARL and the semantics of sstatus.SUM in SPMP is consistent with those in used in Sv (page-based virtual memory).
+
+2. To better support M-mode emulation handler (e.g., the emulation handler needs to read instructions with MXR=1 MPRV=1), sstatus.MXR (Make eXecutable Readable) should be WARL and the semantics of MXR in SPMP is consistent with those in Sv (page-based virtual memory).
 ====
+
+=== Supervisor Security Configuration (sseccfg) CSR
+
+*Supervisor Security Configuration (sseccfg)* is a new Supervisor mode CSR used for configuring SPMP features. 
+All sseccfg fields defined on this proposal are WARL, and the remaining bits are reserved for future standard use and should always read zero.
+This CSR has two fields:
+
+ - Bit 0. ``sseccfg.SMWP`` (Supervisor Memory Access Whitelist Policy): When set, this bit changes the default SPMP policy for S-Mode when accessing memory regions that don't have a matching rule to denied instead of ignored. This bit must reset to 0.
+
+ - Bit 1. ``sseccfg.SMAL`` (SPMP Match-Any Logic): When set, this bit changes the entry matching logic for SPMP from the default priority-based matching, where the lowest-numbered SPMP entry that matches any byte of the access determines the permissions for that access, to a match-any logic where the final permissions for the access are the union of the permissions of any entry that matches any byte of the access. This bit must reset to 0. If match-any logic is not implemented this bit should always read as zero.
+
+
+For RV64 ``sseccfg`` is 64 bits wide, while for RV32 ssecfg is divided into ``sseccfg`` (lower 32 bits) and ``sseccfgh`` (upper 32 bits).
+
+On reset value of sseccfg should be cleared.
 
 === S-mode Physical Memory Protection CSRs
 
@@ -137,11 +154,9 @@ SPMP has three kinds of rules: *S-mode-only*, *U-mode-only* and *Shared-Region* 
 The encoding and results are shown in the <<spmpencode>>:
 
 [[spmpencode]]
-image::SPMP_Encoding_Table_v3.svg[title="SPMP Encoding Table"]
+image::SPMP_Encoding_Table_v4.svg[title="SPMP Encoding Table"]
 // .SPMP Encoding Table.
 // include::images/bytefield/spmpencode.adoc[]
-
-**Allow**: Access succeeds.
 
 **Deny**: Access fails.
 
@@ -153,19 +168,17 @@ image::SPMP_Encoding_Table_v3.svg[title="SPMP Encoding Table"]
 
 **RSVD**: It is reserved for future use.
 
-**SUM bit**: The SPMP uses the sstatus.SUM (permit Supervisor User Memory access) bit to modify the privilege with which S-mode loads and stores access to physical memory. The semantics of sstatus.SUM in SPMP is consistent with those in Sv.
+**SUM bit**: The SPMP uses the sstatus.SUM (permit Supervisor User Memory access) bit to modify the privilege with which S-mode loads and stores access to physical memory. The semantics of sstatus.SUM in SPMP is consistent with those in Sv (page-based virtual memory).
 
-
-
-=== Priority and Matching Logic
-Like PMP entries, SPMP entries are also statically prioritized. The lowest-numbered SPMP entry that matches any byte of access (indicated by an address and the accessed length) determines whether that access is allowed or fails. The SPMP entry must match all bytes of access, or the access fails, irrespective of the S, R, W, and X bits.
+=== Matching Logic
+By default, when ``sseccfg.SMAL`` is clear, like PMP entries, SPMP entries are also statically prioritized. The lowest-numbered SPMP entry that matches any byte of access (indicated by an address and the accessed length) determines whether that access is allowed or fails. The SPMP entry must match all bytes of access, or the access fails, irrespective of the S, R, W, and X bits. Instead, if ``sseccfg.SMAL`` is set, the union of the permissions of any entries that match the access determines whether the access is allowed or fails. In this case, all SPMP entries must match all bytes of the access, irrespective of the S, R, W, and X bits, otherwise the access fails.
 
 On some implementations, misaligned loads, stores, and instruction fetches may also be decomposed into multiple accesses, some of which may succeed before an exception occurs. 
 In particular, a portion of a misaligned store that passes the SPMP check may become visible, even if another portion fails the SPMP check. 
 The same behavior may manifest for stores wider than XLEN bits (e.g., the FSD instruction in RV32D), even when the store address is naturally aligned.
 
 1. If the effective privilege mode of the access is M, the access is ``allowed``;
-2. If the effective privilege mode of the access is S and no SPMP entry matches, the access is ``allowed``;
+2. If the effective privilege mode of the access is S and no SPMP entry matches, if ``sseccfg.SMWP`` is clear the access is ``allowed``, otherwise if ``sseccfg.SMWP`` is set, the access is denied;
 3. If the effective privilege mode of the access is U and no SPMP entry matches, but at least one SPMP entry is implemented, the access is ``denied``;
 4. Otherwise, the access is checked according to the permission bits in the matching SPMP entry. It is allowed if it satisfies the permission checking with the SRWX encoding corresponding to the access type.
 
@@ -180,7 +193,7 @@ The table below shows which mechanism to use. (Assume both paged virtual memory 
 |===
 
 We do not allow both SPMP and paged virtual memory permissions to be actived at the same time now because:
-(1) It will introduce one more layer to check permission for each memory access. This issue will be more serious for a guest OS that may have host SPMP and guest SPMP.
+(1) It will introduce one more layer to check permission for each memory access.
 (2) Paged virtual memory can provide sufficient protection.
 
 That means SPMP is enabled when `satp.mode==Bare` and SPMP is implemented.
