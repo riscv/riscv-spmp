@@ -7,7 +7,7 @@ This section introduces the resource sharing extension that can support dynamic 
 Notably, **this extension is not mandatory** and a specific implementation can still statically implement the numbers of regions in PMP/ePMP and SPMP.
 
 Implementations can consider PMP/SPMP entries as a resource pool (called PMP Resource).
-Specifically, one entry of PMP Resource consists the address CSR, configuration CSR, and any micro-architecture states related to an PMP/SPMP entry.
+Specifically, each PMP Resource entry consists of an address CSR, a configuration CSR, and associated micro-architecture state.
 A new M-mode CSR called `mpmpimppart` is introduced to control the sharing of PMP Resource between PMP and SPMP.
 
 The 16-bit CSR shown in <<mpmpimppart_format>> has two fields:
