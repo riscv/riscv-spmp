@@ -56,7 +56,7 @@ Like PMP, SPMP entries are described by an 8-bit configuration register and one 
 
 The SPMP configuration registers are packed into CSRs the same way as PMP. For RV32, 16 CSRs, spmpcfg0-spmpcfg15, hold the configurations spmp0cfg-spmp63cfg for the 64 SPMP entries.
 For RV64, even numbered CSRs (i.e., spmpcfg0, spmpcfg2, ..., spmpcfg14) hold the configurations for the 64 SPMP entries; odd numbered CSRs (e.g., spmpcfg1) are illegal.
-<<RV32_cfg>> and <<RV64_cfg>> demonstrate the first 16 entries of SPMP. The layout of the rest entries is similar.
+<<spmpcfg-rv32>> and <<spmpcfg-rv64>> demonstrate the first 16 entries of SPMP. The layout of the rest entries is similar.
 
 [NOTE]
 ====
@@ -75,8 +75,8 @@ include::images/bytefield/spmp-rv32.adoc[]
 include::images/bytefield/spmp-rv64.adoc[]
 
 The SPMP address registers are CSRs named spmpaddr0-spmpaddr63.
-Each SPMP address register encodes bits 33-2 of 34-bit physical address for RV32, as shown in <<spmpcfg-rv32>>.
-For RV64, each SPMP address encodes bits 55-2 of a 56-bit physical address, as shown in <<spmpcfg-rv64>>.
+Each SPMP address register encodes bits 33-2 of 34-bit physical address for RV32, as shown in <<spmpaddr-rv32>>.
+For RV64, each SPMP address encodes bits 55-2 of a 56-bit physical address, as shown in <<spmpaddr-rv64>>.
 Fewer address bits may be implemented for specific reasons, e.g., systems with smaller physical address space.
 The number of address bits should be the same for all *writable SPMP entries*.
 Implemented address bits must extend to the LSB format, except as otherwise permitted by granularity rules in "Address Matching" subsection of PMP.
