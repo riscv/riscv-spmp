@@ -13,7 +13,8 @@ The SPMP exception reports have higher priority than PMP or PMA exceptions (i.e.
 SPMP checks will be applied to all accesses whose effective privilege mode is S or U, including instruction fetches and data accesses in S and U mode, 
 and data accesses in M-mode when the MPRV bit in mstatus is set and the MPP field in mstatus contains S or U.
 
-SPMP registers can always be modified by M-mode and S-mode software. 
+SPMP registers can always be modified by M-mode and S-mode software.
+
 SPMP can grant permissions to U-mode, which has none by default. 
 SPMP can also revoke permissions from S-mode.
 
