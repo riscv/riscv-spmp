@@ -22,18 +22,33 @@ SPMP can also revoke permissions from S-mode.
 
 . S mode should be implemented
 +
-. `sstatus.SUM` should be WARL.
+. The `sstatus.SUM` (permit Supervisor User Memory access) bit must be *writeable*.
 +
-. `sstatus.MXR` should be WARL.
-
-
 [NOTE]
 ====
-The Privileged Architecture specification states that `sstatus.SUM` and `sstatus.MXR` should have no effect when page-based virtual memory is not in effect and thus should be read-only 0 if S-mode is not supported or if satp.MODE is read-only 0. However, when the SPMP is present:
+The Privileged Architecture specification states the following
+[quote, Supervisor-Level ISA, Version 1.13 >> "Memory Privilege in `sstatus` Register"]
+____
+`SUM` has no effect when page-based virtual memory is not in effect, nor when executing in U-mode.
+`SUM` is read-only 0 if `satp.MODE` is read-only 0.
+____
+In SPMP, this bit modifies the privilege with which S-mode loads and stores access to physical
+memory, hence the need to make it writeable.
+====
+. The `sstatus.MXR` (Make eXecutable Readable) bit must be *writeable*.
++
+[NOTE]
+====
+The Privileged Architecture specification states that
+[quote, Machine-Level ISA, Version 1.13 >> "Memory Privilege in `mstatus` Register"]
+____
+`MXR` has no effect when page-based virtual memory is not in effect.
+____
+In SPMP, the `MXR` bit modifies the privilege with which loads access physical memory.
+Its semantics are consistent with those of the Machine-Level ISA.
 
-1. The SPMP uses the `sstatus.SUM` (permit Supervisor User Memory access) bit to modify the privilege with which S-mode loads and stores access to physical memory, `sstatus.SUM` should be WARL and the semantics of `sstatus.SUM` in SPMP is consistent with those of the Machine-Level ISA (see the "Memory Privilege in mstatus Register" subsection).
-
-2. To better support M-mode emulation handler (e.g., the emulation handler needs to read instructions with `MXR=1` and `MPRV=1`), `sstatus.MXR` (Make eXecutable Readable) should be WARL and the semantics of `MXR` in SPMP are consistent with those of the Machine-Level ISA (see the "Memory Privilege in mstatus Register" subsection).
+In SPMP, this bit is made writeable to support M-mode emulation handlers where instructions are read
+with `MXR=1` and `MPRV=1`.
 ====
 
 === Supervisor Security Configuration (sseccfg) CSR
