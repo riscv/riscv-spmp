@@ -3,64 +3,63 @@
 
 Given that PMP and SPMP have similar layout of address/config registers and the same address matching logic.
 Reusing registers and comparators between PMP and SPMP may be benefitial (in some cases) to save hardware resources.
-This section introduces the resource sharing extension that can support dynamic reallocation of hardware resource between PMP/ePMP and SPMP.
-Notably, **this extension is not mandatory** and a specific implementation can still statically implement the numbers of regions in PMP/ePMP and SPMP.
+This section introduces the resource sharing extension that can support dynamic reallocation of hardware resource between PMP and SPMP.
+Notably, **this extension is not mandatory** and a specific implementation can still statically implement the numbers of regions in PMP and SPMP.
 
-Implementations can consider PMP/SPMP entries as a resource pool (called PMP Resource).
-Specifically, each PMP Resource entry consists of an address CSR, a configuration CSR, and associated micro-architecture state.
-A new M-mode CSR called `mpmpimppart` is introduced to control the sharing of PMP Resource between PMP and SPMP.
+Implementations can consider PMP/SPMP entries as a resource pool (called PMP_Resource).
+Specifically, each PMP_Resource consists of an address CSR, a configuration CSR, and associated micro-architecture state.
+A new M-mode CSR called `mpmpdeleg` is introduced to control the sharing of PMP_Resource between PMP and SPMP.
 
-The 16-bit CSR shown in <<mpmpimppart_format>> has two fields:
+In the following description, we will refer to the PMP/SPMP from the hardware perspective as `PMP_Resource`, and the PMP/SPMP from the software perspective as `entry`.
 
-. `pmpimp`: 7-bit, allowing a value of 0--64 to specify the number of PMP entries
-. `spmpimp`: 7-bit, allowing a value of 0--64 to specify the number of SPMP entries
 
-The above two fields allow each of the PMP and SPMP to be of different entries, giving extra flexibility.
+The 16-bit CSR shown in <<mpmpdeleg_format>> has one `pmpnum` field:
 
-[[mpmpimppart_format]]
-image::mpmpimppart_format.svg[title="mpmpimppart register format"]
+. `pmpnum` is 7-bit, allowing a value of 0--64 to specify the number of PMP entries.
+. Any PMP_Resource greater than or equal to the `pmpnum` is delegated to S-mode (SPMP). The lower numbered PMP_Resource are left for M-mode (PMP). Delegating higher indexed PMP_Resource to SPMP enables implementations with a single priority tree.
+. M-mode could set `pmpnum>=64` (the number of implemented PMP_Resource), to reserve all resources for PMP.
+. M-mode could set `pmpnum=0` to delegate all PMP_Resource to SPMP. 
+. The reset value of `pmpnum` is `0b100_0000`.
 
+
+[[mpmpdeleg_format]]
+.mpmpdeleg CSR format.
+include::images/bytefield/mpmpdeleg_format.adoc[]
 
 **Constraints:**
 
-. The values of `pmpimp` and `spmpimp` in `mpmpimppart`, under RV32, can only be a multiple of 4; under RV64, it can only be a multiple of 8. This design avoids sharing the same configuration CSR between S-mode and M-mode.
-. The values of `pmpimp` and `spmpimp` in `mpmpimppart` cannot be larger than 64 (the maximum number of supported PMP/SPMP entries).
-. The sum of `pmpimp` and `spmpimp` cannot be larger than the total number of PMP Resources.
-. Not all physical address bits may be implemented, so the `mpmpimppart` is WARL. This can be utilized for feature discovery.
+. With RV32, the values of `pmpnum`, can only be a multiple of 4; with RV64, it can only be a multiple of 8. This design avoids sharing the same configuration CSR between S-mode and M-mode.
+. The `pmpnum` is a WARL field. Illegal writes (e.g., values that are not multiples of 4 (RV32) or 8 (RV64)) should be ignored.
+. If the SPMP entry with lowest CSR number is configured with TOR address-matching mode, zero is used for the lower bound.
 
 **Addressing:**
 
-Notably, the mapping between PMP Resources and PMP/SPMP entries is defined by the specific implementation.
-PMP entries will be supported contiguously, beginning with the lowest CSR number.
-Unlike PMP, SPMP entries **may not** start at the lowest CSR number and might include non-contiguous valid entries.
-For instance, given an implementation with a total of 64 PMP Resource entries, if both `pmpimp` and `spmpimp` are set to 32 during runtime,
-`PMPResource[0]` to `PMPResource[31]` would map to `PMP[0]` to `PMP[31]`.
-The remaining entries, `PMPResource[32]` to `PMPResource[63]`, could be mapped as either `SPMP[0]` to `SPMP[31]` or `SPMP[32]` to `SPMP[63]`, illustrating the flexibility in resource sharing design and implementation.
-If the SPMP entry with lowest CSR number is configured with TOR address-matching mode, zero is used for the lower bound.
+Both PMP and SPMP entries will be supported contiguously.
+The PMP entries begin with the lowest CSR number, while the SPMP entries begin with `mpmpdeleg.pmpnum`.
+For instance, given an implementation with a total of 64 PMP Resource entries, if `mpmpdeleg.pmpnum` is set to 16 during runtime,
+`PMPResource[0]` to `PMPResource[15]` would map to `PMP[0]` to `PMP[15]`.
+The remaining entries, `PMPResource[16]` to `PMPResource[63]`, would be mapped as `SPMP[0]` to `SPMP[47]`.
 
-Another example is that, an implementation with a total of 96 PMP Resource entries,
-if `pmpimp` is set to 48 and
-`spmpimp` is set to 48 during runtime,
-`PMPResource[0]` to `PMPResource[47]` would map to `PMP[0]` to `PMP[47]`.
-`PMPResource[48]` to `PMPResource[63]` may map to `SPMP[48]` to `SPMP[63]`,
-and `PMPResource[64]` to `PMPResource[95]` may map to `SPMP[0]` to `SPMP[31]`.
-`SPMP[32]` to `SPMP[47]` are not implemented (from software perspective) in this case.  
+From a software perspective, the SPMP entries start from `SPMP[0]`.
+The available number of SPMP entries can be discovered by writing to and reading from the SPMP CSRs.
+Illegal writes to SPMP CSRs will be ignored.
+
 
 **Re-configuration:**
 
-M-mode software can re-configure the entries for PMP and SPMP by modifying the `mpmpimppart` CSR.
-A re-configuration will be ignored if it will change the PMP resource of a locked PMP entry to an SPMP entry.
+M-mode software can re-configure the entries for PMP and SPMP by modifying the `mpmpdeleg` CSR.
+A re-configuration involves locked PMP entry will be ignored.
 
-[NOTE]
-====
-Different mapping implementations have their own trade-offs.
-For example, mapping `PMPResource[32]` to `PMPResource[63]` onto `SPMP[0]` to `SPMP[31]` could necessitate additional hardware resources to translate the SPMP CSR index to the corresponding `PMPResource`.
-This might look something like the formula `pmp-resource-index = spmp-index + pmpimp`.
-Another approach is the non-zero-start mapping.
-As an example, `PMPResource[32]` to `PMPResource[63]` could be mapped to `SPMP[32]` to `SPMP[63]`, while `SPMP[0]` to `SPMP[31]` are not implemented.
-In this scenario, the SPMP CSR index mirrors that of the `PMPResources` (when it doesn't exceed 64).
-A potential drawback is that software must be able to handle scenarios where SPMP doesn't begin at the lowest CSR number.
-Nevertheless, this is generally acceptable since S-mode software commonly inspects the available SPMP entries by enumerating CSRs at boot time and utilizes the SPMP CSR accordingly based on this probe.
-Additionally, this design choice becomes even more rational when the Sscsrind extension is implemented and in use.
-PMP Resouce Sharing extension now supports both mapping methods (and others), and the software only needs to check the usable SPMP entries before using them.
-====
+// [NOTE]
+// ====
+// Different mapping implementations have their own trade-offs.
+// For example, mapping `PMPResource[32]` to `PMPResource[63]` onto `SPMP[0]` to `SPMP[31]` could necessitate additional hardware resources to translate the SPMP CSR index to the corresponding `PMPResource`.
+// This might look something like the formula `pmp-resource-index = spmp-index + pmpimp`.
+// Another approach is the non-zero-start mapping.
+// As an example, `PMPResource[32]` to `PMPResource[63]` could be mapped to `SPMP[32]` to `SPMP[63]`, while `SPMP[0]` to `SPMP[31]` are not implemented.
+// In this scenario, the SPMP CSR index mirrors that of the `PMPResources` (when it doesn't exceed 64).
+// A potential drawback is that software must be able to handle scenarios where SPMP doesn't begin at the lowest CSR number.
+// Nevertheless, this is generally acceptable since S-mode software commonly inspects the available SPMP entries by enumerating CSRs at boot time and utilizes the SPMP CSR accordingly based on this probe.
+// Additionally, this design choice becomes even more rational when the Sscsrind extension is implemented and in use.
+// PMP Resouce Sharing extension now supports both mapping methods (and others), and the software only needs to check the usable SPMP entries before using them.
+// ====

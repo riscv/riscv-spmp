@@ -18,4 +18,4 @@ build:
     $(HEADER_SOURCE)
 
 clean:
-	rm $(PDF_RESULT)
+	rm $(PDF_RESULT) images/diag-*.svg images/stem-*.svg

@@ -1,8 +1,8 @@
 [[header]]
 :description: RISC-V S-mode Physical Memory Protection (Sspmp)
 :company: RISC-V.org
-:revdate: 5/2024
-:revnumber: 0.9.2
+:revdate: 3/2025
+:revnumber: 0.9.5
 :revremark: This document is in development. Assume everything can change. See http://riscv.org/spec-state for details.
 :url-riscv: http://riscv.org
 :doctype: book
@@ -37,7 +37,7 @@ endif::[]
 :xrefstyle: short
 
 = RISC-V S-mode Physical Memory Protection (SPMP)
-Editor - Dong Du, RISC-V SPMP Task Group
+Editor - Dong Du, Bicheng Yang, RISC-V SPMP Task Group
 
 // Preamble
 [WARNING]
