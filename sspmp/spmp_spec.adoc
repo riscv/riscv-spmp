@@ -168,11 +168,11 @@ Software may determine the SPMP granularity by writing zero to `spmp0cfg`, then 
 
 *Supervisor Security Configuration (sseccfg)* is a new Supervisor mode CSR used for configuring SPMP features. 
 All sseccfg fields defined on this proposal are WARL, and the remaining bits are reserved for future standard use and should always read zero.
-This CSR has two fields:
+This CSR has one field:
 
  - Bit 0. `sseccfg.SMAA` (Supervisor Memory Access Allowlist Policy): When set, this bit changes the default SPMP policy for S-Mode when accessing memory regions that don't have a matching rule to denied instead of ignored. This bit must reset to 0.
 
- - Bit 1. `sseccfg.SMAL` (SPMP Match-Any Logic): When set, this bit changes the entry matching logic for SPMP from the default priority-based matching, where the lowest-numbered SPMP entry that matches any byte of the access determines the permissions for that access, to a match-any logic where the final permissions for the access are the union of the permissions of any entry that matches any byte of the access. This bit must reset to 0. If match-any logic is not implemented this bit should always read as zero.
+//  - Bit 1. `sseccfg.SMAL` (SPMP Match-Any Logic): When set, this bit changes the entry matching logic for SPMP from the default priority-based matching, where the lowest-numbered SPMP entry that matches any byte of the access determines the permissions for that access, to a match-any logic where the final permissions for the access are the union of the permissions of any entry that matches any byte of the access. This bit must reset to 0. If match-any logic is not implemented this bit should always read as zero.
 
 
 For RV64 `sseccfg` is 64 bits wide, while for RV32 `sseccfg` is divided into `sseccfg` (lower 32 bits) and `sseccfgh` (upper 32 bits).
@@ -181,23 +181,23 @@ The `sseccfg` register must be cleared on reset.
 
 === Matching Logic
 
-By default, when `sseccfg.SMAL` is clear:
+// By default, when `sseccfg.SMAL` is clear:
 
 * SPMP entries are statically prioritized, similar to PMP entries
 +
 * The lowest-numbered SPMP entry that matches any byte of access (indicated by an address and the accessed length) determines whether that access is allowed or denied
 +
-* The SPMP entry must match all bytes of access, or the access fails
+* The SPMP entry must match *all* bytes of access, or the access fails
 +
 * This matching is done irrespective of the S, R, W, and X bits
 
-When `sseccfg.SMAL` is set:
+// When `sseccfg.SMAL` is set:
 
-* The union of permissions of any entries matching the access determines whether the access is allowed or denied
-+
-* All SPMP entries must match all bytes of the access, or the access fails
-+
-* This matching is done irrespective of the S, R, W, and X bits
+// * The union of permissions of any entries matching the access determines whether the access is allowed or denied
+// +
+// * All SPMP entries must match all bytes of the access, or the access fails
+// +
+// * This matching is done irrespective of the S, R, W, and X bits
 
 On some implementations, misaligned loads, stores, and instruction fetches may also be decomposed into multiple accesses, some of which may succeed before an exception occurs. 
 In particular, a portion of a misaligned store that passes the SPMP check may become visible, even if another portion fails the SPMP check. 
