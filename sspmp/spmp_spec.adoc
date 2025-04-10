@@ -57,7 +57,7 @@ Like PMP, SPMP entries are described by an 8-bit configuration register and one 
 
 The SPMP configuration registers are packed into CSRs the same way as PMP. For RV32, 16 CSRs, `spmpcfg0`-`spmpcfg15`, hold the configurations `spmp0cfg`-`spmp63cfg` for the 64 SPMP entries.
 For RV64, even numbered CSRs (i.e., `spmpcfg0`, `spmpcfg2`, ..., `spmpcfg14`) hold the configurations for the 64 SPMP entries; odd numbered CSRs (e.g., `spmpcfg1`) are illegal.
-<<spmpcfg-rv32>> and <<spmpcfg-rv64>> demonstrate the first 16 entries of SPMP. The layout of the rest entries is similar.
+<<spmpcfg-rv32>> and <<spmpcfg-rv64>> demonstrate the first 16 entries of SPMP. The layout of the rest of the entries is identical.
 
 [NOTE]
 ====
@@ -128,7 +128,7 @@ SPMP has three kinds of rules: *S-mode-only*, *U-mode-only* and *Shared-Region* 
 * If `spmpcfg.S` is set, the region can be used for sharing code between S-mode and U-mode, yet not writeable. S-mode and U-mode have execute permission to the region, and S-mode may also have read permission if `spmpcfg.X` is set.
 +
 // * The encoding `spmpcfg.SRWX=1111` can be used for sharing data between S-mode and U-mode, where both modes only have read-only permission to the region.
-* The encoding `spmpcfg.SRWX=1111` is used for backward compatibility, where both S-mode and U-mode have RWX permissions.
+// * The encoding `spmpcfg.SRWX=1111` is used for backward compatibility, where both S-mode and U-mode have RWX permissions.
 +
 . The encoding `spmpcfg.SRWX=1000` is reserved for future standard use.
 
@@ -168,11 +168,11 @@ Software may determine the SPMP granularity by writing zero to `spmp0cfg`, then 
 
 *Supervisor Security Configuration (sseccfg)* is a new Supervisor mode CSR used for configuring SPMP features. 
 All sseccfg fields defined on this proposal are WARL, and the remaining bits are reserved for future standard use and should always read zero.
-This CSR has two fields:
+This CSR has one field:
 
  - Bit 0. `sseccfg.SMAA` (Supervisor Memory Access Allowlist Policy): When set, this bit changes the default SPMP policy for S-Mode when accessing memory regions that don't have a matching rule to denied instead of ignored. This bit must reset to 0.
 
- - Bit 1. `sseccfg.SMAL` (SPMP Match-Any Logic): When set, this bit changes the entry matching logic for SPMP from the default priority-based matching, where the lowest-numbered SPMP entry that matches any byte of the access determines the permissions for that access, to a match-any logic where the final permissions for the access are the union of the permissions of any entry that matches any byte of the access. This bit must reset to 0. If match-any logic is not implemented this bit should always read as zero.
+//  - Bit 1. `sseccfg.SMAL` (SPMP Match-Any Logic): When set, this bit changes the entry matching logic for SPMP from the default priority-based matching, where the lowest-numbered SPMP entry that matches any byte of the access determines the permissions for that access, to a match-any logic where the final permissions for the access are the union of the permissions of any entry that matches any byte of the access. This bit must reset to 0. If match-any logic is not implemented this bit should always read as zero.
 
 
 For RV64 `sseccfg` is 64 bits wide, while for RV32 `sseccfg` is divided into `sseccfg` (lower 32 bits) and `sseccfgh` (upper 32 bits).
@@ -181,23 +181,23 @@ The `sseccfg` register must be cleared on reset.
 
 === Matching Logic
 
-By default, when `sseccfg.SMAL` is clear:
+// By default, when `sseccfg.SMAL` is clear:
 
 * SPMP entries are statically prioritized, similar to PMP entries
 +
 * The lowest-numbered SPMP entry that matches any byte of access (indicated by an address and the accessed length) determines whether that access is allowed or denied
 +
-* The SPMP entry must match all bytes of access, or the access fails
+* The SPMP entry must match *all* bytes of access, or the access fails
 +
 * This matching is done irrespective of the S, R, W, and X bits
 
-When `sseccfg.SMAL` is set:
+// When `sseccfg.SMAL` is set:
 
-* The union of permissions of any entries matching the access determines whether the access is allowed or denied
-+
-* All SPMP entries must match all bytes of the access, or the access fails
-+
-* This matching is done irrespective of the S, R, W, and X bits
+// * The union of permissions of any entries matching the access determines whether the access is allowed or denied
+// +
+// * All SPMP entries must match all bytes of the access, or the access fails
+// +
+// * This matching is done irrespective of the S, R, W, and X bits
 
 On some implementations, misaligned loads, stores, and instruction fetches may also be decomposed into multiple accesses, some of which may succeed before an exception occurs. 
 In particular, a portion of a misaligned store that passes the SPMP check may become visible, even if another portion fails the SPMP check. 
@@ -206,7 +206,7 @@ The same behavior may manifest for stores wider than XLEN bits (e.g., the FSD in
 1. If the effective privilege mode of the access is M, the access is `allowed`;
 2. If the effective privilege mode of the access is S and no SPMP entry matches, if `sseccfg.SMAA` is clear the access is `allowed`, otherwise if `sseccfg.SMAA` is set, the access is denied;
 3. If the effective privilege mode of the access is U and no SPMP entry matches, but at least one SPMP entry is implemented, the access is `denied`;
-4. Otherwise, the access is checked according to the permission bits in the matching SPMP entry. It is allowed if it satisfies the permission checking with the SRWX encoding corresponding to the access type.
+4. Otherwise, each access is checked according to the permission bits in the matching SPMP entry. That access is allowed if it satisfies the permission checking with the SRWX encoding corresponding to the access type.
 
 
 [[spmp-and-paging]]
@@ -233,9 +233,9 @@ That means SPMP is enabled when `satp.mode==Bare` and SPMP is implemented.
 ====
 Please refer to Table "Encoding of satp MODE field" in the riscv-privileged spec for detailed information on the satp.MODE field.
 
-If page-based virtual memory is implemented, an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0` is needed after writing the SPMP CSRs.
-If page-based virtual memory is not implemented, memory accesses check the SPMP settings synchronously, so no fence is needed.
-Please refer to hypervisor extension for additional synchronization requirements when hypervisor is implemented.
+// If page-based virtual memory is implemented, an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0` is needed after writing the SPMP CSRs.
+// If page-based virtual memory is not implemented, memory accesses check the SPMP settings synchronously, so no fence is needed.
+// Please refer to hypervisor extension for additional synchronization requirements when hypervisor is implemented.
 ====
 
 === Exceptions
@@ -270,17 +270,17 @@ Please refer to Table "Supervisor cause register (scause) values after trap" in 
 
 Context switching with SPMP requires storing 64 address and 8 configuration registers (RV64), creating significant overhead. To optimize this:
 
-* In RV32: two XLEN-bit read/write CSRs called `spmpswitch0` and `spmpswitch1` are added, as depicted in <<spmpswitch-rv32>>.
-* In RV64: one XLEN-bit read/write CSR called `spmpswitch0` is added, as depicted in <<spmpswitch-rv64>>.
+* In RV32: two XLEN-bit read/write CSRs called `spmpswitch` and `spmpswitchh` are added, as depicted in <<spmpswitch-rv32>>.
+* In RV64: one XLEN-bit read/write CSR called `spmpswitch` is added, as depicted in <<spmpswitch-rv64>>.
 
 Each bit controls the activation of its corresponding SPMP entry. An entry is active only when both its `spmpswitch[i]` bit and `spmp[i]cfg.A` field are set, i.e., `spmpswitch[i] & spmp[i]cfg.A!=0`.
 
 [[spmpswitch-rv32]]
-.SPMP domain switch registers (`spmpswitch0` and `spmpswitch1`), RV32.
+.SPMP domain switch registers (`spmpswitch` and `spmpswitchh`), RV32.
 include::images/bytefield/spmpswitch-rv32.adoc[]
 
 [[spmpswitch-rv64]]
-.SPMP domain switch register (`spmpswitch0`), RV64.
+.SPMP domain switch register (`spmpswitch`), RV64.
 include::images/bytefield/spmpswitch-rv64.adoc[]
 
 
