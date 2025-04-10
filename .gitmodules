@@ -1,3 +1,9 @@
 [submodule "docs-resources"]
 	path = docs-resources
 	url = https://github.com/riscv/docs-resources.git
+[submodule "sspmp/docs-resources"]
+	path = sspmp/docs-resources
+	url = https://github.com/riscv/docs-resources
+[submodule "spmp-for-hyp/docs-resources"]
+	path = spmp-for-hyp/docs-resources
+	url = https://github.com/riscv/docs-resources
