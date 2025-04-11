@@ -15,7 +15,7 @@ See the link:LICENSE[LICENSE] file for details.
 
 = Contributors
 
-Contributors to this specification are contained in link:sspmp/contributors.adoc[contributors] and link:spmp-for-hyp/contributors.adoc[contributors] files.
+Contributors to this specification are contained in link:sspmp/contributors.adoc[contributors-spmp] and link:spmp-for-hyp/contributors.adoc[contributors-spmp-for-hyp] files.
 
 For instructions on how to contribute please see the link:CONTRIBUTING.md[CONTRIBUTING] file.
 
