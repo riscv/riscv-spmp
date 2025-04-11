@@ -9,14 +9,14 @@
 :preface-title: Preamble
 :colophon:
 :appendix-caption: Appendix
-:imagesdir: images
+:imagesdir: /inputs/images
 :title-logo-image: image:risc-v_logo.svg[pdfwidth=3.25in,align=center]
 // Settings:
 :experimental:
 :reproducible:
 // needs to be changed? bug discussion started
 //:WaveDromEditorApp: app/wavedrom-editor.app
-:imagesoutdir: images
+:imagesoutdir: /outputs/images
 :bibtex-file: example.bib
 :bibtex-order: alphabetical
 :bibtex-style: apa

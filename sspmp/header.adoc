@@ -1,22 +1,22 @@
 [[header]]
 :description: RISC-V S-mode Physical Memory Protection (Sspmp)
 :company: RISC-V.org
-:revdate: 3/2025
-:revnumber: 0.9.5
+:revdate: 4/2025
+:revnumber: 0.9.6
 :revremark: This document is in development. Assume everything can change. See http://riscv.org/spec-state for details.
 :url-riscv: http://riscv.org
 :doctype: book
 :preface-title: Preamble
 :colophon:
 :appendix-caption: Appendix
-:imagesdir: images
+:imagesdir: /inputs/images
 :title-logo-image: image:risc-v_logo.svg[pdfwidth=3.25in,align=center]
 // Settings:
 :experimental:
 :reproducible:
 // needs to be changed? bug discussion started
 //:WaveDromEditorApp: app/wavedrom-editor.app
-:imagesoutdir: images
+:imagesoutdir: /outputs/images
 :bibtex-file: example.bib
 :bibtex-order: alphabetical
 :bibtex-style: apa
