@@ -1,5 +1,4 @@
-*.pdf
 .vscode
 sspmp/.asciidoctor
-sspmp/images/diag-*.svg
-sspmp/images/stem-*.svg
+*/build
+
