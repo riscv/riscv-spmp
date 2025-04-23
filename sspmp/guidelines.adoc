@@ -1,0 +1,155 @@
+[[guidelines]]
+== Recommended Programming Guidelines
+
+When configuring SPMP to isolate user-mode tasks from each other and from the
+operating system (OS) executing in supervisor mode, two primary usage models
+arise, depending on whether the available SPMP entries can simultaneously
+accommodate all required memory ranges for both the user tasks and the OS:
+
+- *Static Configuration*: all SPMP entries are programmed during system
+initialization. This model assumes that the number of available entries is
+sufficient to cover the complete set of memory regions assigned to user tasks
+and the OS without further modification. 
+
+- *Dynamic Configuration*: SPMP entries are reprogrammed on each context switch.
+This model is employed when the number of available SPMP entries is insufficient
+to simultaneously represent all relevant memory regions, requiring dynamic
+updates to enforce memory isolation between tasks.
+
+=== Static Configuration
+
+In the static configuration model, the number of available SPMP entries is
+sufficient to accommodate all required memory ranges for user-mode tasks and
+the OS. In this case, SPMP entries are programmed once during system
+initialization and remain unchanged at runtime. Only the `spmpswitch`
+register(s) need to be updated during context switches between user-mode tasks. 
+
+The OS begins by allocating SPMP entries and populating the `spmpaddr[i]` and
+`spmpcfg[i]` CSRs with the appropriate address ranges and permissions for each
+user-mode task. If the OS itself is to be protected using SPMP, additional
+entries must be allocated and configured with the OS memory ranges, with the `S`
+bit (Supervisor bit) set in `spmpcfg[i]`. 
+
+After initializing the entries, the OS must also set the corresponding bits in
+the `spmpswitch` register to activate these entries, and enable the allowlist
+policy for supervisor mode by setting the `SMAA` bit in the `ssecfg` CSR. 
+
+Prior to launching the first user task, the OS sets the bits in `spmpswitch`
+corresponding to the SPMP entries assigned to that task. During a context
+switch, the OS clears the current task's entry bits and sets those of the newly
+scheduled task using the `csrc` and `csrs` instructions, respectively. On RV32
+systems, both `spmpswitch` and `spmpswitchh` must be managed as a continuous
+pair.
+
+=== Dynamic Reconfiguration
+
+In this configuration model, the available SPMP entries are insufficient to
+simultaneously represent the memory ranges required for all user-mode tasks and
+the supervisor. As a result, the OS must dynamically reconfigure SPMP entries
+for user tasks on every context switch. Notably, for any given hart, the number
+of SPMP entries must still be sufficient to hold both the supervisor entries
+and the entries for the currently executing user-mode task.
+
+Where sufficient SPMP entries exist to cover all tasks and the OS, an
+implementation may simply update `spmpswitch` on context switches. Otherwise,
+the following sequence is recommended for dynamic reconfiguration:
+
+1. *Disable Entries for the Outgoing Task*.
+Use the `csrc` instruction to clear the `spmpswitch` bits corresponding to the
+SPMP entries of the outgoing task. A bitmask representing active entries
+(typically stored in the task's control block) should be passed as an argument. 
+
+2. *Update SPMP Address Registers*.
+Write the `spmpaddr[i]` CSRs with the address ranges corresponding to the
+memory regions of the incoming task. 
+
+3. *Update SPMP Configuration Registers*.
+For each corresponding `spmpcfg[i]` field: 
+
+- Clear the existing configuration bits using the `csrc` instruction with an
+appropriate mask; 
+
+- Set the desired configuration using the `csrs` instruction. 
+
+4. *Enable Entries for the Incoming Task*.
+Use the `csrs` instruction to write to `spmpswitch`, passing a bitmask that
+enables the SPMP entries allocated to the incoming task.
+
+[NOTE] 
+==== 
+It is recommended that SPMP entries configured to protect the
+supervisor (i.e., entries with `spmpXcfg[i].S = 1`) remain resident and are not
+reprogrammed during the context-switch process. Maintaining these entries as
+persistent minimizes reconfiguration overhead and ensures consistent
+enforcement of memory protection for the supervisor across task switches.
+====
+
+=== Entry Configuration Recomendations
+
+When programming SPMP entries, a trade-off exists between using exclusively
+Naturally Aligned Power-Of-Two (NAPOT) or Top-Of-Range (TOR) address-matching
+modes.
+
+While NAPOT allows compact encoding for power-of-two-aligned regions using a
+single entry, it may lead to internal fragmentation if the region size exceeds
+the actual requirement, resulting in memory waste. On the other hand, TOR mode
+(particularly in its generic form) requires two SPMP entries per protected
+region (base and top), which may exhaust available entries more quickly.
+However, for regions that are naturally power-of-two aligned, TOR may still be
+encoded with fewer entries.
+
+This trade-off becomes especially relevant in MCU environments, where local
+memories are often sparsely mapped to fixed address ranges associated with
+specific core functions. In such cases, exclusive use of NAPOT or naïvely
+pairing TOR entries may be inefficient or lead to undesirable gaps in
+protection. Additionally, while it is possible to define multiple contiguous
+regions with different access permissions using overlapping or consecutive TOR
+entries, this technique can introduce subtle dependencies. Sharing a top address
+between two address spaces (e.g., supervisor and user) can lead to unintended
+interactions: reducing the supervisor region may inadvertently expand the
+adjacent user region. Similarly, replacing a shared top address during context
+switches could expose previously protected memory.
+
+Given these risks, the following configuration model is recommended:
+
+- Use TOR mode exclusively, treating each pair of `spmpaddr[i]` registers
+(even/odd indexed) as a base/top pair defining a single memory region;
+
+- Conceptually, view SPMP entries as organized into pairs: (0/1), (2/3), ...,
+(62/63). Only the odd-indexed entries are enabled via the corresponding bits in
+`spmpswitch`, as each odd entry finalizes the definition of a region;
+
+- Allocate and populate SPMP entries in descending index order (i.e., from lower
+priority to higher priority), starting from the highest index downward. This
+allocation strategy allows the OS to define temporary subregions by configuring
+unused lower-index entries without needing to reconfigure existing higher-index
+(priority) ones.
+
+This disciplined use of TOR-mode SPMP entries ensures clearer isolation
+boundaries, reduces the likelihood of configuration errors, and improves runtime
+flexibility for memory protection schemes.
+
+=== Re-configuration Non-preemption and Synchronization
+
+To preserve the integrity of SPMP state, the reconfiguration process during a
+context switch must be executed as a non-preemptible critical section. This
+requirement stems from the need to update multiple control and configuration
+CSRs, and any interruption or concurrent modification during this process can
+result in transient inconsistencies or unintended access permissions.
+
+In the *dynamic reconfiguration model*, the critical section must be enforced
+across updates to the following CSRs: `spmpaddr[i]`, `spmpcfg[i]` , and
+`spmpswitch` . In the *static configuration model*, this concern is relevant
+only for RV32 systems with more than 32 SPMP entries, where both `spmpswitch`
+and `spmpswitchh` must be updated in coordination.
+
+To prevent asynchronous supervisor-level interrupts during reconfiguration, the
+supervisor must clear the `SIE` (Supervisor Interrupt Enable) bit in the
+`sstatus` CSR. Furthermore, synchronisation mechanisms (e.g., mutexes or
+spinlocks) must be employed to serialise access to SPMP CSRs in multi-threaded
+or multi-core systems, ensuring that concurrent modifications do not result in
+conflicting or corrupted configurations.
+
+By enforcing non-preemption and proper synchronisation, software ensures that
+SPMP protections remain deterministic, secure, and verifiable across context
+switches.

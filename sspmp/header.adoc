@@ -64,6 +64,7 @@ include::intro.adoc[]
 include::spmp_spec.adoc[]
 include::Resource_Sharing.adoc[]
 include::Summary_of_Hardware_Changes.adoc[]
+include::guidelines.adoc[]
 // include::Interaction_with_hypervisor_extension.adoc[]
 include::Interaction_with_other_proposals.adoc[]
 //the index must precede the bibliography
