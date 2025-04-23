@@ -123,19 +123,16 @@ SPMP has three kinds of rules: *S-mode-only*, *U-mode-only* and *Shared-Region* 
 +
 . A *Shared-Region* rule is enforced on both Supervisor and User modes, with restrictions depending on the `spmpcfg.S` and `spmpcfg.X` bits:
 +
-* If `spmpcfg.S` is not set, the region can be used for sharing data between S-mode and U-mode, yet not executable. S-mode has RW permission to that region, and U-mode has read-only permission if `spmpcfg.X` is not set or RW permission if `spmpcfg.X` is set.
+* If `spmpcfg.S` is not set, the region can be used for sharing data between S-mode and U-mode, yet not executable. S-mode has RW permission to that region. U-mode has RW permission if `spmpcfg.X` is set, and it is restricted to read-only if `spmpcfg.X` is cleared.
 +
-* If `spmpcfg.S` is set, the region can be used for sharing code between S-mode and U-mode, yet not writeable. S-mode and U-mode have execute permission to the region, and S-mode may also have read permission if `spmpcfg.X` is set.
-+
-// * The encoding `spmpcfg.SRWX=1111` can be used for sharing data between S-mode and U-mode, where both modes only have read-only permission to the region.
-// * The encoding `spmpcfg.SRWX=1111` is used for backward compatibility, where both S-mode and U-mode have RWX permissions.
+* If `spmpcfg.S` is set, the region can be used for sharing code between S-mode and U-mode, yet not writeable. S-mode has RX permission to that region. U-mode has RX permission if `spmpcfg.X` is set, and it is restricted to execute-only if `spmpcfg.X` is cleared.
 +
 . The encoding `spmpcfg.SRWX=1000` is reserved for future standard use.
 
 The encoding and results are shown in the <<spmpencode>>:
 
 [[spmpencode]]
-image::SPMP_Encoding_Table_v5.svg[title="SPMP Encoding Table"]
+image::SPMP_Encoding_Table_v6.svg[title="SPMP Encoding Table"]
 // .SPMP Encoding Table.
 // include::images/bytefield/spmpencode.adoc[]
 
