@@ -48,7 +48,7 @@ Illegal writes to SPMP CSRs will be ignored.
 **Re-configuration:**
 
 M-mode software can re-configure the entries for PMP and SPMP by modifying the `mpmpdeleg` CSR.
-A re-configuration involves locked PMP entry will be ignored.
+A re-configuration involving locked PMP entry will leave `mpmpdeleg` unchanged.
 
 // [NOTE]
 // ====

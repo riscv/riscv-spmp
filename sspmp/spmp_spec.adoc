@@ -63,7 +63,7 @@ For RV64, even numbered CSRs (i.e., `spmpcfg0`, `spmpcfg2`, ..., `spmpcfg14`) ho
 ====
 The terms, entry and rule, are similar to ePMP.
 
-The implementation should decode all SPMP CSRs, and it can modify the number of *writable SPMP entries* while the remaining SPMP CSRs are read-only zero.
+The implementation must decode all SPMP CSRs, and it can modify the number of *writable SPMP entries* while the remaining SPMP CSRs are read-only zero.
 
 The lowest-numbered SPMP entries must be implemented first.
 ====
@@ -115,17 +115,17 @@ SPMP has three kinds of rules: *S-mode-only*, *U-mode-only* and *Shared-Region* 
 
 . An *S-mode-only* rule is *enforced* on Supervisor mode and *denied* on User mode.
 +
-. A *U-mode-only* rule is *enforced* on User modes and *denied*/*enforced* on Supervisor mode depending on the value of `sstatus.SUM` bit:
+. A *U-mode-only* rule is *enforced* on User modes and is either *denied* or *enforced* on Supervisor mode depending on the value of `sstatus.SUM` bit:
 +
-* If `sstatus.SUM` is set, a U-mode-only rule is enforced without code execution permission on Supervisor mode to ensure supervisor mode execution protection.
+* If `sstatus.SUM` is set, a U-mode-only rule is enforced on Supervisor mode, yet not be executable. This ensures the Supervisor Memory Execution Prevention (SMEP).
 +
-* If `sstatus.SUM` is unset, a U-mode-only rule is denied on Supervisor mode.
+* If `sstatus.SUM` is unset, a U-mode-only rule is denied on Supervisor mode. This ensures the Supervisor Memory Access Prevention (SMAP).
 +
 . A *Shared-Region* rule is enforced on both Supervisor and User modes, with restrictions depending on the `spmpcfg.S` and `spmpcfg.X` bits:
 +
-* If `spmpcfg.S` is not set, the region can be used for sharing data between S-mode and U-mode, yet not executable. S-mode has RW permission to that region. U-mode has RW permission if `spmpcfg.X` is set, and it is restricted to read-only if `spmpcfg.X` is cleared.
+* If `spmpcfg.S` is not set, the region can be used for sharing data between S-mode and U-mode, yet not be executable. S-mode has RW permission to that region. U-mode has RW permission if `spmpcfg.X` is set, and it is restricted to read-only if `spmpcfg.X` is cleared.
 +
-* If `spmpcfg.S` is set, the region can be used for sharing code between S-mode and U-mode, yet not writeable. S-mode has RX permission to that region. U-mode has RX permission if `spmpcfg.X` is set, and it is restricted to execute-only if `spmpcfg.X` is cleared.
+* If `spmpcfg.S` is set, the region can be used for sharing code between S-mode and U-mode, yet not be writeable. S-mode has RX permission to that region. U-mode has RX permission if `spmpcfg.X` is set, and it is restricted to execute-only if `spmpcfg.X` is cleared.
 +
 . The encoding `spmpcfg.SRWX=1000` is reserved for future standard use.
 
@@ -146,7 +146,7 @@ image::SPMP_Encoding_Table_v6.svg[title="SPMP Encoding Table"]
 
 **RSVD**: It is reserved for future use.
 
-**SUM bit**: The SPMP uses the `sstatus.SUM` (permit Supervisor User Memory access) bit to modify the privilege with which S-mode loads and stores access to physical memory. The semantics of `sstatus.SUM` in SPMP are consistent with those of the Machine-Level ISA (see the "Memory Privilege in mstatus Register" subsection).
+**SUM bit**: The SPMP uses the `sstatus.SUM` (permit Supervisor User Memory access) bit to modify the privilege with which S-mode loads and stores access to physical memory. The semantics of `sstatus.SUM` in SPMP are consistent with those of the Machine-Level ISA (Please refer to the "Memory Privilege in mstatus Register" subsection in the riscv-privileged spec for detailed information).
 
 === Address Matching
 
@@ -174,7 +174,7 @@ This CSR has one field:
 
 For RV64 `sseccfg` is 64 bits wide, while for RV32 `sseccfg` is divided into `sseccfg` (lower 32 bits) and `sseccfgh` (upper 32 bits).
 
-The `sseccfg` register must be cleared on reset.
+The `sseccfg` register must be cleared on reset. The presence of SPMP can be determined by probing the sseccfg CSR.
 
 === Matching Logic
 
@@ -316,12 +316,11 @@ Each combination of `siselect` and `sireg` represents an access to the correspon
 |    ...     |        ...
 // |`siselect#79`|`sireg` -> `spmpaddr[62]`
 |`siselect#80`|`sireg` -> `spmpaddr[63]`
-|`siselect#81`|`sireg/sireg2` -> `spmpswitch/spmpswitchh`
 |===
 
 [NOTE]
 ====
-The specific value of `siselect#1-81` will be allocated after review by the Arch Review Committee.
+The specific value of `siselect#1-80` will be allocated after review by the Arch Review Committee.
 
 The rationale for SPMP only using the first `sireg` CSR is due to performance consideration.
 If multiple `sireg` CSRs are assigned to each `siselect`, a jump table or additional calculations would be needed to determine which `sireg` to assess.
