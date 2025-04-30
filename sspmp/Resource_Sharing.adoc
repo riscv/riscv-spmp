@@ -4,7 +4,6 @@
 Given that PMP and SPMP have similar layout of address/config registers and the same address matching logic.
 Reusing registers and comparators between PMP and SPMP may be benefitial (in some cases) to save hardware resources.
 This section introduces the resource sharing extension that can support dynamic reallocation of hardware resource between PMP and SPMP.
-Notably, **this extension is not mandatory** and a specific implementation can still statically implement the numbers of regions in PMP and SPMP.
 
 Implementations can consider PMP/SPMP entries as a resource pool (called PMP_Resource).
 Specifically, each PMP_Resource consists of an address CSR, a configuration CSR, and associated micro-architecture state.
@@ -31,6 +30,12 @@ include::images/bytefield/mpmpdeleg_format.adoc[]
 . With RV32, the values of `pmpnum`, can only be a multiple of 4; with RV64, it can only be a multiple of 8. This design avoids sharing the same configuration CSR between S-mode and M-mode.
 . The `pmpnum` is a WARL field. Illegal writes (e.g., values that are not multiples of 4 (RV32) or 8 (RV64)) should be ignored.
 . If the SPMP entry with lowest CSR number is configured with TOR address-matching mode, zero is used for the lower bound.
+
+
+[NOTE]
+====
+In case a single pool of `PMP_Resource` should be statically assigned to PMP/SPMP respectively, an implementation shall hardwire the value in `mpmpdeleg` accordingly for PMP and SPMP.
+====
 
 **Addressing:**
 
