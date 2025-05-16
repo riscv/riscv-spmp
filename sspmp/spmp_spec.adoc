@@ -305,26 +305,20 @@ Each combination of `siselect` and `sireg` represents an access to the correspon
 
 [cols="^1,^2",stripes=even, options="header"]
 |===
-|`siselect` number|indirect CSR access of `sireg[i]`
-|`siselect#1`|`sireg` -> `spmpcfg[0]`
-// |`siselect#2`|`sireg` -> `spmpcfg[1]`
-|    ...     |        ...
-// |`siselect#15`|`sireg` -> `spmpcfg[14]`
-|`siselect#16`|`sireg` -> `spmpcfg[15]`
-|`siselect#17`|`sireg` -> `spmpaddr[0]`
-// |`siselect#18`|`sireg` -> `spmpaddr[1]`
-|    ...     |        ...
-// |`siselect#79`|`sireg` -> `spmpaddr[62]`
-|`siselect#80`|`sireg` -> `spmpaddr[63]`
+|`siselect` number| indirect CSR access of `sireg`
+|`siselect#1`|`sireg` -> `spmpaddr[0]`, `sireg2` -> `spmp[0]cfg`
+|`siselect#2`|`sireg` -> `spmpaddr[1]`, `sireg2` -> `spmp[1]cfg`
+|    ...     |    ...     
+|`siselect#64`|`sireg` -> `spmpaddr[63]`, `sireg2` -> `spmp[63]cfg`
 |===
 
 [NOTE]
 ====
-The specific value of `siselect#1-80` will be allocated after review by the Arch Review Committee.
+The specific value of `siselect#1-64` will be allocated after review by the Arch Review Committee.
 
-The rationale for SPMP only using the first `sireg` CSR is due to performance consideration.
-If multiple `sireg` CSRs are assigned to each `siselect`, a jump table or additional calculations would be needed to determine which `sireg` to assess.
-Assigning one `sireg` CSR for each `siselect` would be more efficient.
+The rationale for SPMP only assign one rule per siselect value is due to performance consideration.
+If multiple SPMP rules are assigned to each `siselect`, a jump table or additional calculations would be needed to determine which `sireg` to assess.
+// Assigning one `sireg` CSR for each `siselect` would be more efficient.
 
 Please refer to the `Sscsrind` extension specification for details on indirect CSR accesses:
 https://github.com/riscv/riscv-indirect-csr-access
