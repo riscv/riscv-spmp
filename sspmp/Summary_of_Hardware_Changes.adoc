@@ -1,12 +1,19 @@
 [[Summary_of_Hardware_Changes]]
 == Summary of Hardware Changes
 
-[cols="^1,^2",stripes=even, options="header"]
+**Supervisor-level Changes:**
+[cols="^4,^5",stripes=even, options="header"]
 |===
 |Item|Changes
-|CSRs for SPMP address|64 new CSRs
-|CSRs for SPMP configuration|16 new CSRs for RV32 and 8 for RV64
-|CSR for domain switch|2 new CSRs for RV32 and 1 for RV64
+|CSR for domain switch (optional)|2 new CSRs for RV32 and 1 for RV64
+|Indirect access to delegated PMP_Resource|64 new siselect values
+|===
+
+
+**Machine-level Changes:**
+[cols="^4,^5",stripes=even, options="header"]
+|===
+|Item|Changes
 |CSR for resource sharing|1 new CSR
-|Indirect access to SPMP CSRs|64 new siselect values
+|Indirect access to PMP_Resource|64 new siselect values
 |===

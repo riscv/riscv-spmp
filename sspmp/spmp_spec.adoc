@@ -63,7 +63,9 @@ For RV64, even numbered CSRs (i.e., `spmpcfg0`, `spmpcfg2`, ..., `spmpcfg14`) ho
 
 [NOTE]
 ====
-The terms, entry and rule, are similar to ePMP.
+An SPMP entry denotes a pair of `spmpcfg[i]` / `spmpaddr[i]` registers.
+
+An SPMP rule denotes the contents of a `spmpcfg` register and its associated `spmpaddr` register(s), that encode a valid protected physical memory region, where `spmpcfg[i].A != OFF`, and if `spmpcfg[i].A == TOR, spmpaddr[i-1] < spmpaddr[i]`.
 
 The implementation must decode all SPMP CSRs, and it can modify the number of *writable SPMP entries* while the remaining SPMP CSRs are read-only zero.
 
@@ -92,14 +94,30 @@ include::images/bytefield/spmpaddr-rv32.adoc[]
 .SPMP address register format, RV64.
 include::images/bytefield/spmpaddr-rv64.adoc[]
 
-The layout of SPMP configuration registers is the same as PMP configuration registers, as shown in <<spmpcfg>>. The register is WARL.
-The rules and encodings for permission are explained in section 2.4, which resembles the encoding of ePMP (except SPMP does not use locked rules).
+The layout of SPMP configuration registers is shown in <<spmpcfg>>. The register is WARL.
+The rules and encodings for permission are explained in <<encoding>>.
+
+. The L bit marks an entry as locked, i.e., writes to the configuration register and associated address registers are ignored.
+
+[NOTE]
+====
+The L bit is only accessible to M-mode (Detailed in <<access_method>>).
+
+The L bit is not a sticky bit, a locked SPMP entry can only be reset by M-mode. 
+
+Setting the L bit locks the SPMP entry even when the A field is set to OFF.
+
+For a locked SPMP entry `i`, writes to `spmp[i]cfg` and `spmpaddr[i]` will succeed if the effective privilege mode is M. 
+
+For a locked SPMP entry `i`, writes to `spmp[i]cfg` and `spmpaddr[i]` are ignored if the effective privilege mode is S. 
+Additionally, if `spmp[i]cfg.A` of the locked entry is set to TOR, S-mode writes to `spmpaddr[i-1]` are ignored.
+====
 
 . The S bit marks a rule as *S-mode-only* when set and *U-mode-only* when unset.
 
-. Bit 5 and 6 are reserved for future use.
+. Bit 5 is reserved for future use.
 
-. The A field will be described in the following sections (2.3).
+. The A field will be described in the following sections.
 
 . The R/W/X bits control read, write, and instruction execution permissions.
 
@@ -107,7 +125,7 @@ The rules and encodings for permission are explained in section 2.4, which resem
 .SPMP configuration register format.
 include::images/bytefield/spmpcfg.adoc[]
 
-
+[[encoding]]
 === Encoding of Permissions
 
 
@@ -131,7 +149,7 @@ SPMP has three kinds of rules: *S-mode-only*, *U-mode-only* and *Shared-Region* 
 +
 . The encoding `spmpcfg.SRWX=1000` is reserved for future standard use.
 
-The encoding and results are shown in the <<spmpencode>>:
+The encoding and results are shown in <<spmpencode>>:
 
 [[spmpencode]]
 image::SPMP_Encoding_Table_v6.svg[title="SPMP Encoding Table"]
@@ -182,7 +200,7 @@ Software may determine the SPMP granularity by writing zero to `spmp0cfg`, then 
 
 // By default, when `sseccfg.SMAL` is clear:
 
-* SPMP entries are statically prioritized, similar to PMP entries
+* SPMP entries are statically prioritized.
 +
 * The lowest-numbered SPMP entry that matches any byte of access (indicated by an address and the accessed length) determines whether that access is allowed or denied
 +
@@ -203,8 +221,7 @@ In particular, a portion of a misaligned store that passes the SPMP check may be
 The same behavior may manifest for stores wider than XLEN bits (e.g., the FSD instruction in RV32D), even when the store address is naturally aligned.
 
 1. If the effective privilege mode of the access is M, the access is `allowed`;
-2. If the effective privilege mode of the access is S/U and no SPMP entry matches, but at least one SPMP entry is implemented, the access is `denied`;
-// 3. If the effective privilege mode of the access is U and no SPMP entry matches, but at least one SPMP entry is implemented, the access is `denied`;
+2. If the effective privilege mode of the access is S/U and no SPMP entry matches, but at least one SPMP entry is delegated, the access is `denied`; (Description of the delegated SPMP entry is in <<PMP_Resource_Sharing>>)
 3. Otherwise, each access is checked according to the permission bits in the matching SPMP entry. That access is allowed if it satisfies the permission checking with the SRWX encoding corresponding to the access type.
 
 
@@ -212,6 +229,8 @@ The same behavior may manifest for stores wider than XLEN bits (e.g., the FSD in
 ====
 The SPMP rules are checked for all implicit and explicit accesses in all S-mode and lesser-privileged modes.
 Implicit accesses in S-mode are treated as S-mode accesses.
+
+The execution environment should configure SPMP entry(s) to grant the most permissive access to S-mode. Then S-mode code can set up SPMP as desired.
 ====
 
 [[spmp-and-paging]]
@@ -290,38 +309,40 @@ include::images/bytefield/spmpswitch-rv64.adoc[]
 
 [NOTE]
 ====
+The context switching optimization is **optional**.
+
 When `spmpswitch` is implemented and `spmpcfg[i].A == TOR`, an entry matches any address asciimath:[y] where:
 
-- `spmpaddr[i-1]` asciimath:[\le y <] `spmpaddr[i]`
+1. `spmpaddr[i-1]` asciimath:[\le y <] `spmpaddr[i]`
 +
-- This matching occurs regardless of `spmpcfg[i-1]` and `spmpswitch[i-1]` values
-
-// If `spmpcfg[0].A == TOR`, zero is used for the lower bound, and so it matches any address y < spmpaddr[0].
+2. This matching occurs regardless of `spmpcfg[i-1]` and `spmpswitch[i-1]` values
 ====
 
 The `spmpswitch` registers must be cleared on reset.
 
 
-=== Access Methods of SPMP CSRs
+[[access_method]]
+=== Access Method of SPMP CSRs
 *Indirect CSR access*: The SPMP CSRs are accessed indirectly.
 Each combination of `siselect` and `sireg` represents an access to the corresponding SPMP CSR.
 
 The indirect CSR access avoids the potential cost in pipeline flushes.
 However, there is no ordering guarantee between writes to different SPMP CSRs, except when explicitly executing an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0`.
 
+S-mode can only access bit `0-6` of each field of the configuration register.
+This means that `spmp[i]cfg.L` can only be accessed by M-mode.
+
 [cols="^1,^2",stripes=even, options="header"]
 |===
 |`siselect` number| indirect CSR access of `sireg`
-|`siselect#1`|`sireg` -> `spmpaddr[0]`, `sireg2` -> `spmp[0]cfg`
-|`siselect#2`|`sireg` -> `spmpaddr[1]`, `sireg2` -> `spmp[1]cfg`
+|`siselect#1`|`sireg` -> `spmpaddr[0]`, `sireg2` -> `spmp[0]cfg{0..6}`
+|`siselect#2`|`sireg` -> `spmpaddr[1]`, `sireg2` -> `spmp[1]cfg{0..6}`
 |    ...     |    ...     
-|`siselect#64`|`sireg` -> `spmpaddr[63]`, `sireg2` -> `spmp[63]cfg`
+|`siselect#64`|`sireg` -> `spmpaddr[63]`, `sireg2` -> `spmp[63]cfg{0..6}`
 |===
 
 [NOTE]
 ====
-The specific value of `siselect#1-64` will be allocated after review by the Arch Review Committee.
-
 The rationale for SPMP only assign one rule per siselect value is due to performance consideration.
 If multiple SPMP rules are assigned to each `siselect`, a jump table or additional calculations would be needed to determine which `sireg` to assess.
 
