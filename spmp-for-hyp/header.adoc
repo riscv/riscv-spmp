@@ -1,8 +1,8 @@
 [[header]]
 :description: RISC-V S-mode Physical Memory Protection for Hypervisor
 :company: RISC-V.org
-:revdate: 11/2023
-:revnumber: 0.1
+:revdate: 10/2025
+:revnumber: 0.2
 :revremark: This document is in development. Assume everything can change. See http://riscv.org/spec-state for details.
 :url-riscv: http://riscv.org
 :doctype: book
@@ -37,7 +37,7 @@ endif::[]
 :xrefstyle: short
 
 = RISC-V S-mode Physical Memory Protection for Hypervisor
-Editor - Dong Du and Sandro Pinto
+Editor - Bicheng Yang and José Martins
 
 // Preamble
 [WARNING]
@@ -62,9 +62,3 @@ include::contributors.adoc[]
 
 include::intro.adoc[]
 include::spmp_hyp_spec.adoc[]
-//include::Summary_of_Hardware_Changes.adoc[]
-// include::Interaction_with_hypervisor_extension.adoc[]
-// include::Interaction_with_other_proposals.adoc[]
-//the index must precede the bibliography
-// include::index.adoc[]
-// include::bibliography.adoc[]
