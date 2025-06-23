@@ -1,11 +1,13 @@
-[[PMP_Resource_Sharing]]
-== Extension of Resource Sharing
+== Machine-level Modification
 
 Given that PMP and SPMP have similar layout of address/config registers and the same address matching logic.
 Reusing registers and comparators between PMP and SPMP may be benefitial (in some cases) to save hardware resources.
-This section introduces the resource sharing extension that can support dynamic reallocation of hardware resource between PMP and SPMP.
+This chapter introduces the resource sharing mechanism that can support dynamic reallocation of hardware resource between PMP and SPMP.
 
-Implementations can consider PMP/SPMP entries as a resource pool (called PMP_Resource).
+[[PMP_Resource_Sharing]]
+=== Resource Sharing between PMP and SPMP
+
+Implementations should consider PMP/SPMP entries as a resource pool (called PMP_Resource).
 Specifically, each PMP_Resource consists of an address CSR, a configuration CSR, and associated micro-architecture state.
 A new M-mode CSR called `mpmpdeleg` is introduced to control the sharing of PMP_Resource between PMP and SPMP.
 
@@ -15,10 +17,11 @@ In the following description, we will refer to the PMP/SPMP from the hardware pe
 The 16-bit CSR shown in <<mpmpdeleg_format>> has one `pmpnum` field:
 
 . `pmpnum` is 7-bit, allowing a value of 0--64 to specify the number of PMP entries.
-. Any PMP_Resource greater than or equal to the `pmpnum` is delegated to S-mode (SPMP). The lower numbered PMP_Resource are left for M-mode (PMP). Delegating higher indexed PMP_Resource to SPMP enables implementations with a single priority tree.
+. Any PMP_Resource greater than or equal to the `pmpnum` is delegated to S-mode (SPMP). The lower numbered PMP_Resource are left for M-mode (PMP).
 . M-mode could set `pmpnum>=64` (the number of implemented PMP_Resource), to reserve all resources for PMP.
 . M-mode could set `pmpnum=0` to delegate all PMP_Resource to SPMP. 
 . The reset value of `pmpnum` is `0b100_0000`.
+. The `pmpnum` is locked when `mseccfg.MML` is set (Please refer to the `Smepmp` extension specification for details on `mseccfg.MML`).
 
 
 [[mpmpdeleg_format]]
@@ -34,7 +37,11 @@ include::images/bytefield/mpmpdeleg_format.adoc[]
 
 [NOTE]
 ====
-In case a single pool of `PMP_Resource` should be statically assigned to PMP/SPMP respectively, an implementation shall hardwire the value in `mpmpdeleg` accordingly for PMP and SPMP.
+The resource sharing is **mandatory**.
+
+The `mpmpdeleg` CSR is WARL, and allows an implementation to hardwire the PMP/SPMP split if desired.
+
+To reduce context-switch overhead, S-mode software should evaluate the number of SPMP rules each S-mode context needs and set `mpmpdeleg.pmpnum` accordingly.
 ====
 
 **Addressing:**
@@ -55,16 +62,20 @@ Illegal writes to SPMP CSRs will be ignored.
 M-mode software can re-configure the entries for PMP and SPMP by modifying the `mpmpdeleg` CSR.
 A re-configuration involving locked PMP entry will leave `mpmpdeleg` unchanged.
 
-// [NOTE]
-// ====
-// Different mapping implementations have their own trade-offs.
-// For example, mapping `PMPResource[32]` to `PMPResource[63]` onto `SPMP[0]` to `SPMP[31]` could necessitate additional hardware resources to translate the SPMP CSR index to the corresponding `PMPResource`.
-// This might look something like the formula `pmp-resource-index = spmp-index + pmpimp`.
-// Another approach is the non-zero-start mapping.
-// As an example, `PMPResource[32]` to `PMPResource[63]` could be mapped to `SPMP[32]` to `SPMP[63]`, while `SPMP[0]` to `SPMP[31]` are not implemented.
-// In this scenario, the SPMP CSR index mirrors that of the `PMPResources` (when it doesn't exceed 64).
-// A potential drawback is that software must be able to handle scenarios where SPMP doesn't begin at the lowest CSR number.
-// Nevertheless, this is generally acceptable since S-mode software commonly inspects the available SPMP entries by enumerating CSRs at boot time and utilizes the SPMP CSR accordingly based on this probe.
-// Additionally, this design choice becomes even more rational when the Sscsrind extension is implemented and in use.
-// PMP Resouce Sharing extension now supports both mapping methods (and others), and the software only needs to check the usable SPMP entries before using them.
-// ====
+=== Access Method of PMP_Resource
+
+*Indirect CSR access*: `PMP_Resource` CSRs can be accessed indirectly from M-mode.
+Each combination of `miselect` and `mireg` represents an access to the corresponding `PMP_Resource` CSR.
+
+There is no ordering guarantee between writes to different `PMP_Resource` CSRs via indirect access, except when explicitly executing an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0`.
+
+M-mode can access every bits of configuration registers.
+
+[cols="^1,^2",stripes=even, options="header"]
+|===
+|`miselect` number| indirect CSR access of `mireg`
+|`miselect#1`|`mireg` -> `pmp/spmpaddr[0]`, `mireg2` -> `pmp/spmp[0]cfg{0..7}`
+|`miselect#2`|`mireg` -> `pmp/spmpaddr[1]`, `mireg2` -> `pmp/spmp[1]cfg{0..7}`
+|    ...     |    ...     
+|`miselect#64`|`mireg` -> `pmp/spmpaddr[63]`, `mireg2` -> `pmp/spmp[63]cfg{0..7}`
+|===
