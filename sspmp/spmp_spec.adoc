@@ -298,6 +298,10 @@ Context switching with SPMP requires storing 64 address and 8 configuration regi
 
 Each bit controls the activation of its corresponding SPMP entry. An entry is active only when both its `spmpswitch[i]` bit and `spmp[i]cfg.A` field are set, i.e., `spmpswitch[i] & spmp[i]cfg.A!=0`.
 
+The `spmpswitch` registers must be cleared on reset.
+
+Please refer to <<guidelines>> for how software can use the optimization to reduce context switch overhead.
+
 [[spmpswitch-rv32]]
 .SPMP domain switch registers (`spmpswitch` and `spmpswitchh`), RV32.
 include::images/bytefield/spmpswitch-rv32.adoc[]
@@ -316,9 +320,11 @@ When `spmpswitch` is implemented and `spmpcfg[i].A == TOR`, an entry matches any
 1. `spmpaddr[i-1]` asciimath:[\le y <] `spmpaddr[i]`
 +
 2. This matching occurs regardless of `spmpcfg[i-1]` and `spmpswitch[i-1]` values
+
+In case where `spmpswitch[i] == 0` and `spmp[i]cfg.L == 1`, entry `i` remains enabled.
+An implementation can hardwire the L bit to `0` if the lock functionality is not required.
 ====
 
-The `spmpswitch` registers must be cleared on reset.
 
 
 [[access_method]]
