@@ -113,6 +113,14 @@ For a locked SPMP entry `i`, writes to `spmp[i]cfg` and `spmpaddr[i]` are ignore
 Additionally, if `spmp[i]cfg.A` of the locked entry is set to TOR, S-mode writes to `spmpaddr[i-1]` are ignored.
 ====
 
+[NOTE]
+====
+The L bit can be used by M-mode to contain software running in S-mode by setting and locking highest-priority SPMP entries with `spmp[i]cfg.S` set. This can be useful to prevent privilege escalation attacks that would reprogram SPMP entries used to limit S-mode accesses.
+
+Although this could arguably be achieved by using PMP/ePMP entries, the resulting configuration would not be equivalent as they do not differentiate between S and U modes. Furthermore, in cases resource sharing is statically defined (i.e., `mpmpdeleg.pmpnum` is hardwired - see <<PMP_Resource_Sharing>>) there may be insufficient PMP/ePMP entries available to implement the desired isolation.
+====
+
+
 . The S bit marks a rule as *S-mode-only* when set and *U-mode-only* when unset.
 
 . Bit 5 is reserved for future use.
@@ -325,6 +333,14 @@ In case where `spmpswitch[i] == 0` and `spmp[i]cfg.L == 1`, entry `i` remains en
 An implementation can hardwire the L bit to `0` if the lock functionality is not required.
 ====
 
+[NOTE]
+====
+Utilizing `spmpswitch` for optimizing context switches can be beneficial in several scenarios, including (but not limited to):
+
+1. When the number of available SPMP entries is sufficient to accommodate all tasks executing on a given hart, each task’s memory regions can be permanently mapped to a fixed subset of SPMP entries. In this model, switching SPMP contexts reduces to a single write to `spmpswitch` (or two writes in RV32 systems: `spmpswitch` and `spmpswitchh`) to deactivate the outgoing task and enable the entries associated with the incoming task.
+
+2. A subset of SPMP entries may be reserved for timing-critical or latency-sensitive tasks, such as interrupt handlers. This ensures minimal overhead when switching into these contexts, avoiding the need for dynamic reconfiguration of SPMP entries.
+====
 
 
 [[access_method]]
