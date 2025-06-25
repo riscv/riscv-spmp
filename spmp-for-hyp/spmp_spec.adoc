@@ -4,15 +4,15 @@
 An optional RISC-V S-mode Physical Memory Protection (SPMP) provides per-hart supervisor-mode control registers to allow physical memory access privileges (read, write, execute) to be specified for each physical memory region.
 The SPMP is also applied to data accesses in M-mode when the MPRV bit in mstatus is set and the MPP field in mstatus contains S or U.
 
-Like PMP, the granularity of SPMP access control settings is platform-specific and, within a platform, may vary by physical memory region. However, the standard SPMP encoding support regions as small as four bytes. 
+Like PMP, the granularity of SPMP access control settings is platform-specific and, within a platform, may vary by physical memory region. However, the standard SPMP encoding support regions as small as four bytes.
 
 The implementation can perform SPMP checks in parallel with PMA and PMP.
 The SPMP exception reports have higher priority than PMP or PMA exceptions (e.g., an SPMP exception will be raised if the access violates both SPMP and PMP).
 
 SPMP checks will be applied to all accesses for U mode and S mode, depending on the values in the configuration registers.
 M-mode accesses are not affected and always pass SPMP permission checks.
-SPMP registers can always be modified by M-mode and S-mode software. 
-SPMP can grant permissions to U-mode, which has none by default. 
+SPMP registers can always be modified by M-mode and S-mode software.
+SPMP can grant permissions to U-mode, which has none by default.
 SPMP can also revoke permissions from S-mode.
 
 === Requirements
@@ -62,7 +62,7 @@ The rules and encodings for permission are explained in section 2.4, which resem
 
 image::SPMP_configuration_register_format.svg[title="SPMP configuration register format"]
 
-*The number of SPMP entries*: Implementations may implement zero, 16, or 64 SPMP entries. 
+*The number of SPMP entries*: Implementations may implement zero, 16, or 64 SPMP entries.
 SPMP CSRs are accessible to M-mode and S-mode.
 *The reset state*: On system reset, the A field of spmp[i]cfg should be zero.
 
@@ -98,7 +98,7 @@ SPMP has three kinds of rules: *S-mode-only*, *U-mode-only* and *Shared-Region* 
 +
 * If ``spmpcfg.S`` is not set, the region can be used for sharing data between S-mode and U-mode, yet not executable. S-mode has RW permission to that region, and U-mode has read-only permission if ``spmpcfg.X`` is not set or RW permission if ``spmpcfg.X`` is set.
 +
-* If ``spmpcfg.S`` is set, the region can be used for sharing code between S-mode and U-mode, yet not writeable. S-mode and U-mode have execute permission to the region, and S-mode may also have read permission if ``spmpcfg.X`` is set.
+* If ``spmpcfg.S`` is set, the region can be used for sharing code between S-mode and U-mode, yet not writable. S-mode and U-mode have execute permission to the region, and S-mode may also have read permission if ``spmpcfg.X`` is set.
 +
 * The encoding ``spmpcfg.SRWX=1111`` can be used for sharing data between S-mode and U-mode, where both modes only have read-only permission to the region.
 +
@@ -145,8 +145,8 @@ If PMP/ePMP is implemented, accesses succeed only if both PMP/ePMP and SPMP perm
 
 Like PMP entries, SPMP entries are also statically prioritized. The lowest-numbered SPMP entry that matches any byte of access (indicated by an address and the accessed length) determines whether that access is allowed or fails. The SPMP entry must match all bytes of access, or the access fails, irrespective of the S, R, W, and X bits.
 
-On some implementations, misaligned loads, stores, and instruction fetches may also be decomposed into multiple accesses, some of which may succeed before an exception occurs. 
-In particular, a portion of a misaligned store that passes the SPMP check may become visible, even if another portion fails the SPMP check. 
+On some implementations, misaligned loads, stores, and instruction fetches may also be decomposed into multiple accesses, some of which may succeed before an exception occurs.
+In particular, a portion of a misaligned store that passes the SPMP check may become visible, even if another portion fails the SPMP check.
 The same behavior may manifest for floating-point stores wider than XLEN bits (e.g., the FSD instruction in RV32D), even when the store address is naturally aligned.
 
 1. If the privilege mode of the access is M, the access is ``allowed``;
@@ -186,7 +186,7 @@ Because page fault is typically delegated to S-mode, so does SPMP fault, we can 
 S-mode software(i.e., OS) can distinguish page fault from SPMP fault by checking satp.mode (as mentioned in 2.6, SPMP and paged virtual memory will not be activated simultaneously).
 *SPMP proposes to rename page fault to SPMP/page fault for clarity*.
 
-Note that a single instruction may generate multiple accesses, which may not be mutually atomic. 
+Note that a single instruction may generate multiple accesses, which may not be mutually atomic.
 
 Table of renamed exception codes:
 
