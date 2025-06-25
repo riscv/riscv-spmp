@@ -62,6 +62,7 @@ Illegal writes to SPMP CSRs will be ignored.
 M-mode software can re-configure the entries for PMP and SPMP by modifying the `mpmpdeleg` CSR.
 A re-configuration involving locked PMP entry will leave `mpmpdeleg` unchanged.
 
+[[m_mode_indirect_access]]
 === Access Method of PMP_Resource
 
 *Indirect CSR access*: `PMP_Resource` CSRs can be accessed indirectly from M-mode.
@@ -69,13 +70,13 @@ Each combination of `miselect` and `mireg` represents an access to the correspon
 
 There is no ordering guarantee between writes to different `PMP_Resource` CSRs via indirect access, except when explicitly executing an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0`.
 
-M-mode can access every bits of configuration registers.
+The `spmp[i]cfg.L` bit can only be reset when accessing in M-mode via `miselect`.
 
 [cols="^1,^2",stripes=even, options="header"]
 |===
 |`miselect` number| indirect CSR access of `mireg`
-|`miselect#1`|`mireg` -> `pmp/spmpaddr[0]`, `mireg2` -> `pmp/spmp[0]cfg{0..7}`
-|`miselect#2`|`mireg` -> `pmp/spmpaddr[1]`, `mireg2` -> `pmp/spmp[1]cfg{0..7}`
+|`miselect#1`|`mireg` -> `pmp/spmpaddr[0]`, `mireg2` -> `pmp/spmp[0]cfg`
+|`miselect#2`|`mireg` -> `pmp/spmpaddr[1]`, `mireg2` -> `pmp/spmp[1]cfg`
 |    ...     |    ...     
-|`miselect#64`|`mireg` -> `pmp/spmpaddr[63]`, `mireg2` -> `pmp/spmp[63]cfg{0..7}`
+|`miselect#64`|`mireg` -> `pmp/spmpaddr[63]`, `mireg2` -> `pmp/spmp[63]cfg`
 |===
