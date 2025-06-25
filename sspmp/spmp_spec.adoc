@@ -351,16 +351,17 @@ Each combination of `siselect` and `sireg` represents an access to the correspon
 The indirect CSR access avoids the potential cost in pipeline flushes.
 However, there is no ordering guarantee between writes to different SPMP CSRs, except when explicitly executing an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0`.
 
-S-mode can only access bit `0-6` of each field of the configuration register.
-This means that `spmp[i]cfg.L` can only be accessed by M-mode.
+S-mode can set `spmp[i]cfg.L` to lock an SPMP entry.
+When `spmp[i]cfg.L` is set, SPMP writes via `siselect` are ignored, regardless of the effective privilege mode.
+Only M-mode access via `miselect` can reset `spmp[i]cfg.L` (see <<m_mode_indirect_access>>).
 
 [cols="^1,^2",stripes=even, options="header"]
 |===
 |`siselect` number| indirect CSR access of `sireg`
-|`siselect#1`|`sireg` -> `spmpaddr[0]`, `sireg2` -> `spmp[0]cfg{0..6}`
-|`siselect#2`|`sireg` -> `spmpaddr[1]`, `sireg2` -> `spmp[1]cfg{0..6}`
+|`siselect#1`|`sireg` -> `spmpaddr[0]`, `sireg2` -> `spmp[0]cfg`
+|`siselect#2`|`sireg` -> `spmpaddr[1]`, `sireg2` -> `spmp[1]cfg`
 |    ...     |    ...     
-|`siselect#64`|`sireg` -> `spmpaddr[63]`, `sireg2` -> `spmp[63]cfg{0..6}`
+|`siselect#64`|`sireg` -> `spmpaddr[63]`, `sireg2` -> `spmp[63]cfg`
 |===
 
 [NOTE]
