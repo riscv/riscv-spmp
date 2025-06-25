@@ -4,18 +4,18 @@
 An optional RISC-V S-mode Physical Memory Protection (SPMP) provides per-hart supervisor-mode control registers to allow physical memory access privileges (read, write, execute) to be specified for each physical memory region.
 // The SPMP is also applied to data accesses in M-mode when the MPRV bit in mstatus is set and the MPP field in mstatus contains S or U.
 
-// Like PMP, the granularity of SPMP access control settings is platform-specific and, within a platform, may vary by physical memory region. However, the standard SPMP encoding support regions as small as four bytes. 
+// Like PMP, the granularity of SPMP access control settings is platform-specific and, within a platform, may vary by physical memory region. However, the standard SPMP encoding support regions as small as four bytes.
 
 If PMP/ePMP is implemented, accesses succeed only if both PMP/ePMP and SPMP permission checks pass.
-The implementation can perform SPMP checks in parallel with PMA and PMP.
+The implementation can perform SPMP checks in parallel with the PMA and PMP checks.
 The SPMP exception reports have higher priority than PMP or PMA exceptions (i.e., if the access violates both SPMP and PMP/PMA, the SPMP exception will be reported).
 
-SPMP checks will be applied to all accesses whose effective privilege mode is S or U, including instruction fetches and data accesses in S and U mode, 
+SPMP checks will be applied to all accesses whose effective privilege mode is S or U, including instruction fetches and data accesses in S and U mode,
 and data accesses in M-mode when the MPRV bit in mstatus is set and the MPP field in mstatus contains S or U.
 
 SPMP registers can always be modified by M-mode and S-mode software.
 
-SPMP can grant permissions to U-mode, which has none by default. 
+SPMP can grant permissions to U-mode, which has none by default.
 SPMP can also revoke permissions from S-mode.
 
 === Requirements
@@ -24,7 +24,7 @@ SPMP can also revoke permissions from S-mode.
 +
 . The `Sscsrind` extension should be implemented to support indirect CSR access.
 +
-. The `sstatus.SUM` (permit Supervisor User Memory access) bit must be *writeable*.
+. The `sstatus.SUM` (permit Supervisor User Memory access) bit must be *writable*.
 +
 [NOTE]
 ====
@@ -35,9 +35,9 @@ ____
 `SUM` is read-only 0 if `satp.MODE` is read-only 0.
 ____
 In SPMP, this bit modifies the privilege with which S-mode loads and stores access to physical
-memory, hence the need to make it writeable.
+memory, hence the need to make it writable.
 ====
-. The `sstatus.MXR` (Make eXecutable Readable) bit must be *writeable*.
+. The `sstatus.MXR` (Make eXecutable Readable) bit must be *writable*.
 +
 [NOTE]
 ====
@@ -49,7 +49,7 @@ ____
 In SPMP, the `MXR` bit modifies the privilege with which loads access physical memory.
 Its semantics are consistent with those of the Machine-Level ISA.
 
-In SPMP, this bit is made writeable to support M-mode emulation handlers where instructions are read
+In SPMP, this bit is made writable to support M-mode emulation handlers where instructions are read
 with `MXR=1` and `MPRV=1`.
 ====
 
@@ -103,13 +103,13 @@ The rules and encodings for permission are explained in <<encoding>>.
 ====
 The L bit is only accessible to M-mode (Detailed in <<access_method>>).
 
-The L bit is not a sticky bit, a locked SPMP entry can only be reset by M-mode. 
+The L bit is not a sticky bit, a locked SPMP entry can only be reset by M-mode.
 
 Setting the L bit locks the SPMP entry even when the A field is set to OFF.
 
-For a locked SPMP entry `i`, writes to `spmp[i]cfg` and `spmpaddr[i]` will succeed if the effective privilege mode is M. 
+For a locked SPMP entry `i`, writes to `spmp[i]cfg` and `spmpaddr[i]` will succeed if the effective privilege mode is M.
 
-For a locked SPMP entry `i`, writes to `spmp[i]cfg` and `spmpaddr[i]` are ignored if the effective privilege mode is S. 
+For a locked SPMP entry `i`, writes to `spmp[i]cfg` and `spmpaddr[i]` are ignored if the effective privilege mode is S.
 Additionally, if `spmp[i]cfg.A` of the locked entry is set to TOR, S-mode writes to `spmpaddr[i-1]` are ignored.
 ====
 
@@ -153,7 +153,7 @@ SPMP has three kinds of rules: *S-mode-only*, *U-mode-only* and *Shared-Region* 
 +
 * If `spmpcfg.S` is not set, the region can be used for sharing data between S-mode and U-mode, yet not be executable. S-mode has RW permission to that region. U-mode has RW permission if `spmpcfg.X` is set, and it is restricted to read-only if `spmpcfg.X` is cleared.
 +
-* If `spmpcfg.S` is set, the region can be used for sharing code between S-mode and U-mode, yet not be writeable. S-mode has RX permission to that region. U-mode has RX permission if `spmpcfg.X` is set, and it is restricted to execute-only if `spmpcfg.X` is cleared.
+* If `spmpcfg.S` is set, the region can be used for sharing code between S-mode and U-mode, yet not be writable. S-mode has RX permission to that region. U-mode has RX permission if `spmpcfg.X` is set, and it is restricted to execute-only if `spmpcfg.X` is cleared.
 +
 . The encoding `spmpcfg.SRWX=1000` is reserved for future standard use.
 
@@ -191,7 +191,7 @@ Software may determine the SPMP granularity by writing zero to `spmp0cfg`, then 
 
 // === Supervisor Security Configuration (sseccfg) CSR
 
-// *Supervisor Security Configuration (sseccfg)* is a new Supervisor mode CSR used for configuring SPMP features. 
+// *Supervisor Security Configuration (sseccfg)* is a new Supervisor mode CSR used for configuring SPMP features.
 // All sseccfg fields defined on this proposal are WARL, and the remaining bits are reserved for future standard use and should always read zero.
 // This CSR has one field:
 
@@ -224,8 +224,8 @@ Software may determine the SPMP granularity by writing zero to `spmp0cfg`, then 
 // +
 // * This matching is done irrespective of the S, R, W, and X bits
 
-On some implementations, misaligned loads, stores, and instruction fetches may also be decomposed into multiple accesses, some of which may succeed before an exception occurs. 
-In particular, a portion of a misaligned store that passes the SPMP check may become visible, even if another portion fails the SPMP check. 
+On some implementations, misaligned loads, stores, and instruction fetches may also be decomposed into multiple accesses, some of which may succeed before an exception occurs.
+In particular, a portion of a misaligned store that passes the SPMP check may become visible, even if another portion fails the SPMP check.
 The same behavior may manifest for stores wider than XLEN bits (e.g., the FSD instruction in RV32D), even when the store address is naturally aligned.
 
 1. If the effective privilege mode of the access is M, the access is `allowed`;
@@ -276,7 +276,7 @@ When an access fails, SPMP generates an exception based on the access type (i.e.
 The SPMP reuses page fault exception codes for SPMP faults since page faults are typically delegated to S-mode.
 S-mode software (i.e., OS) can distinguish between SPMP and page faults by checking `satp.mode`, since SPMP and paged virtual memory cannot be active simultaneously (as described in <<spmp-and-paging>>).
 
-Note that a single instruction may generate multiple accesses, which may not be mutually atomic. 
+Note that a single instruction may generate multiple accesses, which may not be mutually atomic.
 
 Table of exception codes:
 
@@ -329,7 +329,7 @@ When `spmpswitch` is implemented and `spmpcfg[i].A == TOR`, an entry matches any
 +
 2. This matching occurs regardless of `spmpcfg[i-1]` and `spmpswitch[i-1]` values
 
-In case where `spmpswitch[i] == 0` and `spmp[i]cfg.L == 1`, entry `i` remains enabled.
+In the case where `spmpswitch[i] == 0` and `spmp[i]cfg.L == 1`, entry `i` remains enabled.
 An implementation can hardwire the L bit to `0` if the lock functionality is not required.
 ====
 
@@ -360,7 +360,7 @@ Only M-mode access via `miselect` can reset `spmp[i]cfg.L` (see <<m_mode_indirec
 |`siselect` number| indirect CSR access of `sireg`
 |`siselect#1`|`sireg` -> `spmpaddr[0]`, `sireg2` -> `spmp[0]cfg`
 |`siselect#2`|`sireg` -> `spmpaddr[1]`, `sireg2` -> `spmp[1]cfg`
-|    ...     |    ...     
+|    ...     |    ...
 |`siselect#64`|`sireg` -> `spmpaddr[63]`, `sireg2` -> `spmp[63]cfg`
 |===
 
