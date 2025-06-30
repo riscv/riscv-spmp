@@ -20,9 +20,9 @@ SPMP can also revoke permissions from S-mode.
 
 === Requirements
 
-. S mode should be implemented
+. S mode must be implemented.
 +
-. The `Sscsrind` extension should be implemented to support indirect CSR access.
+. The `Sscsrind` extension must be implemented to support indirect CSR access.
 +
 . The `sstatus.SUM` (permit Supervisor User Memory access) bit must be *writable*.
 +
@@ -97,31 +97,9 @@ include::images/bytefield/spmpaddr-rv64.adoc[]
 The layout of SPMP configuration registers is shown in <<spmpcfg>>. The register is WARL.
 The rules and encodings for permission are explained in <<encoding>>.
 
-. The L bit marks an entry as locked, i.e., writes to the configuration register and associated address registers are ignored.
+. The L bit marks an entry as locked, i.e., writes to the configuration register and associated address registers via *S-level CSRs* are ignored. It can only be reset via *M-level CSRs* (see <<m_mode_indirect_access>>).
 
-[NOTE]
-====
-The L bit is only accessible to M-mode (Detailed in <<access_method>>).
-
-The L bit is not a sticky bit, a locked SPMP entry can only be reset by M-mode.
-
-Setting the L bit locks the SPMP entry even when the A field is set to OFF.
-
-For a locked SPMP entry `i`, writes to `spmp[i]cfg` and `spmpaddr[i]` will succeed if the effective privilege mode is M.
-
-For a locked SPMP entry `i`, writes to `spmp[i]cfg` and `spmpaddr[i]` are ignored if the effective privilege mode is S.
-Additionally, if `spmp[i]cfg.A` of the locked entry is set to TOR, S-mode writes to `spmpaddr[i-1]` are ignored.
-====
-
-[NOTE]
-====
-The L bit can be used by M-mode to contain software running in S-mode by setting and locking highest-priority SPMP entries with `spmp[i]cfg.S` set. This can be useful to prevent privilege escalation attacks that would reprogram SPMP entries used to limit S-mode accesses.
-
-Although this could arguably be achieved by using PMP/ePMP entries, the resulting configuration would not be equivalent as they do not differentiate between S and U modes. Furthermore, in cases resource sharing is statically defined (i.e., `mpmpdeleg.pmpnum` is hardwired - see <<PMP_Resource_Sharing>>) there may be insufficient PMP/ePMP entries available to implement the desired isolation.
-====
-
-
-. The S bit marks a rule as *S-mode-only* when set and *U-mode-only* when unset.
+. For a rule that is not `Shared-Region`, the S bit marks it as *S-mode-only* when set and *U-mode-only* when unset (details in <<encoding>>).
 
 . Bit 5 is reserved for future use.
 
@@ -132,6 +110,23 @@ Although this could arguably be achieved by using PMP/ePMP entries, the resultin
 [[spmpcfg]]
 .SPMP configuration register format.
 include::images/bytefield/spmpcfg.adoc[]
+
+
+[NOTE]
+====
+An implementation can hardwire the L bit to `0` if the lock functionality is not required.
+
+Setting the L bit locks the SPMP entry even when the A field is set to OFF.
+
+For a locked SPMP entry `i`, writes to `spmp[i]cfg` and `spmpaddr[i]` will succeed if the effective privilege mode is M.
+
+For a locked SPMP entry `i`, writes to `spmp[i]cfg` and `spmpaddr[i]` are ignored if the effective privilege mode is S.
+Additionally, if `spmp[i]cfg.A` of the locked entry is set to TOR, S-mode writes to `spmpaddr[i-1]` are ignored.
+
+The L bit can be used by M-mode to contain software running in S-mode by setting and locking highest-priority SPMP entries with `spmp[i]cfg.S` set. This can be useful to prevent privilege escalation attacks that would reprogram SPMP entries used to limit S-mode accesses.
+Although this could arguably be achieved by using PMP/ePMP entries, the resulting configuration would not be equivalent as they do not differentiate between S and U modes. Furthermore, in cases resource sharing is statically defined (i.e., `mpmpdeleg.pmpnum` is hardwired - see <<PMP_Resource_Sharing>>) there may be insufficient PMP/ePMP entries available to implement the desired isolation.
+====
+
 
 [[encoding]]
 === Encoding of Permissions
@@ -160,21 +155,21 @@ SPMP has three kinds of rules: *S-mode-only*, *U-mode-only* and *Shared-Region* 
 The encoding and results are shown in <<spmpencode>>:
 
 [[spmpencode]]
-image::SPMP_Encoding_Table_v6.svg[title="SPMP Encoding Table"]
+image::SPMP_Encoding_Table_v7.svg[title="SPMP Encoding Table"]
 // .SPMP Encoding Table.
 // include::images/bytefield/spmpencode.adoc[]
 
-**Deny**: Access fails.
+*Deny*: Access fails.
 
-**Enforce**: The R/W/X permissions are enforced on accesses.
+*Enforce*: The R/W/X permissions are enforced on accesses.
 
-**EnforceNoX**: The R/W permissions are enforced on accesses, while the X bit is forced to be zero.
+*EnforceNoX*: The R/W permissions are enforced on accesses, while the X bit is forced to be zero.
 
-**SHR**: It is shared between S/U modes with X, RX, RW, or ReadOnly privileges.
+*Shared*: It is shared between S/U modes with X, RX, RW, or ReadOnly privileges.
 
-**RSVD**: It is reserved for future use.
+*Reserved*: It is reserved for future use.
 
-**SUM bit**: The SPMP uses the `sstatus.SUM` (permit Supervisor User Memory access) bit to modify the privilege with which S-mode loads and stores access to physical memory. The semantics of `sstatus.SUM` in SPMP are consistent with those of the Machine-Level ISA (Please refer to the "Memory Privilege in mstatus Register" subsection in the riscv-privileged spec for detailed information).
+*SUM bit*: The SPMP uses the `sstatus.SUM` (permit Supervisor User Memory access) bit to modify the privilege with which S-mode loads and stores access to physical memory. The semantics of `sstatus.SUM` in SPMP are consistent with those of the Machine-Level ISA (Please refer to the "Memory Privilege in mstatus Register" subsection in the riscv-privileged spec for detailed information).
 
 === Address Matching
 
@@ -210,11 +205,11 @@ Software may determine the SPMP granularity by writing zero to `spmp0cfg`, then 
 
 * SPMP entries are statically prioritized.
 +
-* The lowest-numbered SPMP entry that matches any byte of access (indicated by an address and the accessed length) determines whether that access is allowed or denied
+* The lowest-numbered SPMP entry that matches any byte of access (indicated by an address and the accessed length) determines whether that access is allowed or denied.
 +
-* The SPMP entry must match *all* bytes of access, or the access fails
+* The SPMP entry must match *all* bytes of access, or the access fails and an instruction, load, or store page-fault exception is generated (see <<exceptions>>).
 +
-* This matching is done irrespective of the S, R, W, and X bits
+* This matching is done irrespective of the S, R, W, and X bits.
 
 // When `sseccfg.SMAL` is set:
 
@@ -270,6 +265,7 @@ Please refer to Table "Encoding of satp MODE field" in the riscv-privileged spec
 // Please refer to hypervisor extension for additional synchronization requirements when hypervisor is implemented.
 ====
 
+[[exceptions]]
 === Exceptions
 When an access fails, SPMP generates an exception based on the access type (i.e., load accesses, store/AMO accesses, and instruction fetches). Each exception has a different code.
 
@@ -299,12 +295,15 @@ Please refer to Table "Supervisor cause register (scause) values after trap" in 
 
 === Context Switching Optimization
 
-Context switching with SPMP requires storing 64 address and 8 configuration registers (RV64), creating significant overhead. To optimize this:
+Context switching with SPMP requires updating up to 64 address and 8 configuration registers (RV64). This *optional* optimization reduces such overhead.
 
 * In RV32: two XLEN-bit read/write CSRs called `spmpswitch` and `spmpswitchh` are added, as depicted in <<spmpswitch-rv32>>.
 * In RV64: one XLEN-bit read/write CSR called `spmpswitch` is added, as depicted in <<spmpswitch-rv64>>.
+* The `spmpswitch` CSR is mandatory. Software can discover the context switching optimization by writing to and reading back the `spmpswitch` CSR.
 
 Each bit controls the activation of its corresponding SPMP entry. An entry is active only when both its `spmpswitch[i]` bit and `spmp[i]cfg.A` field are set, i.e., `spmpswitch[i] & spmp[i]cfg.A!=0`.
+
+If an entry `i` is locked (i.e., `spmp[i]cfg.L == 1`), then `spmpswitch[i]` is *read-only* to *S-level CSRs*.
 
 The `spmpswitch` registers must be cleared on reset.
 
@@ -321,16 +320,11 @@ include::images/bytefield/spmpswitch-rv64.adoc[]
 
 [NOTE]
 ====
-The context switching optimization is **optional**.
-
 When `spmpswitch` is implemented and `spmpcfg[i].A == TOR`, an entry matches any address asciimath:[y] where:
 
 1. `spmpaddr[i-1]` asciimath:[\le y <] `spmpaddr[i]`
 +
 2. This matching occurs regardless of `spmpcfg[i-1]` and `spmpswitch[i-1]` values
-
-In the case where `spmpswitch[i] == 0` and `spmp[i]cfg.L == 1`, entry `i` remains enabled.
-An implementation can hardwire the L bit to `0` if the lock functionality is not required.
 ====
 
 [NOTE]
