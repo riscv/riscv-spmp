@@ -171,17 +171,29 @@ image::SPMP_Encoding_Table_v7.svg[title="SPMP Encoding Table"]
 
 *SUM bit*: The SPMP uses the `sstatus.SUM` (permit Supervisor User Memory access) bit to modify the privilege with which S-mode loads and stores access to physical memory. The semantics of `sstatus.SUM` in SPMP are consistent with those of the Machine-Level ISA (Please refer to the "Memory Privilege in mstatus Register" subsection in the riscv-privileged spec for detailed information).
 
+[[address_matching]]
 === Address Matching
 
 The A field in an SPMP entry's configuration register encodes the address-matching mode of the associated SPMP address register.
-It is the same as PMP/ePMP.
+The encoding of this field is shown in the following table:
 
-Please refer to the "Address Matching" subsection of PMP in the riscv-privileged spec for detailed information.
+[cols="^1,^1,^3", stripes=even, options="header"]
+|===
+|spmp[i]cfg.A|Name|Description
+|0|OFF|Null region (disabled)
+|1|TOR|Top of range
+|2|NA4|Naturally aligned four-byte region
+|3|NAPOT|Naturally aligned power-of-two region, ≥8 bytes
+|===
+
+It aligns with PMP/ePMP. Please refer to the "Address Matching" subsection of PMP in the riscv-privileged spec for detailed information.
 
 
 [NOTE]
 ====
 Software may determine the SPMP granularity by writing zero to `spmp0cfg`, then writing all ones to `spmpaddr0`, then reading back `spmpaddr0`. If asciimath:[G] is the index of the least-significant bit set, the SPMP granularity is asciimath:[2^{G+2}]
+
+The `spmp[i]cfg.A` is WARL, so an implmentation can hardwire the address matching method to a specific one it desires.
 ====
 
 // === Supervisor Security Configuration (sseccfg) CSR
@@ -352,16 +364,18 @@ Only M-mode access via `miselect` can reset `spmp[i]cfg.L` (see <<m_mode_indirec
 [cols="^1,^2",stripes=even, options="header"]
 |===
 |`siselect` number| indirect CSR access of `sireg`
-|`siselect#1`|`sireg` -> `spmpaddr[0]`, `sireg2` -> `spmp[0]cfg`
-|`siselect#2`|`sireg` -> `spmpaddr[1]`, `sireg2` -> `spmp[1]cfg`
+|`siselect#0`|`sireg` -> `spmpaddr[0]`, `sireg2` -> `spmp[0]cfg`
+|`siselect#1`|`sireg` -> `spmpaddr[1]`, `sireg2` -> `spmp[1]cfg`
 |    ...     |    ...
-|`siselect#64`|`sireg` -> `spmpaddr[63]`, `sireg2` -> `spmp[63]cfg`
+|`siselect#63`|`sireg` -> `spmpaddr[63]`, `sireg2` -> `spmp[63]cfg`
 |===
 
 [NOTE]
 ====
-The rationale for SPMP only assign one rule per siselect value is due to performance consideration.
-If multiple SPMP rules are assigned to each `siselect`, a jump table or additional calculations would be needed to determine which `sireg` to assess.
+The rationale for the fact that M-mode cannot reset `spmp[i]cfg.L` via `siselect` is to separate this permission by the CSR address space rather than only by privileged mode.
+
+The rationale for SPMP only assign one entry per siselect value is due to performance consideration.
+If multiple SPMP entries are assigned to each `siselect`, a jump table or additional calculations would be needed to determine which `sireg` to assess.
 
 Please refer to the `Sscsrind` extension specification for details on indirect CSR accesses:
 https://github.com/riscv/riscv-indirect-csr-access

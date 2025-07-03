@@ -28,23 +28,21 @@ The 16-bit CSR shown in <<mpmpdeleg_format>> has one `pmpnum` field:
 .mpmpdeleg CSR format.
 include::images/bytefield/mpmpdeleg_format.adoc[]
 
-**Constraints:**
+*Constraints:*
 
 . With RV32, the values of `pmpnum`, can only be a multiple of 4; with RV64, it can only be a multiple of 8. This design avoids sharing the same configuration CSR between S-mode and M-mode.
 . The `pmpnum` is a WARL field. Illegal writes (e.g., values that are not multiples of 4 (RV32) or 8 (RV64)) should be ignored.
-. If the SPMP entry with lowest CSR number is configured with TOR address-matching mode, zero is used for the lower bound.
+. If the SPMP entry with lowest CSR number is configured with TOR address-matching mode (i.e., `spmp[0]cfg.A == TOR`), zero is used for the lower bound.
 
 
 [NOTE]
 ====
-The resource sharing is **mandatory**.
-
 The `mpmpdeleg` CSR is WARL, and allows an implementation to hardwire the PMP/SPMP split if desired.
 
 To reduce context-switch overhead, S-mode software should evaluate the number of SPMP rules each S-mode context needs and set `mpmpdeleg.pmpnum` accordingly.
 ====
 
-**Addressing:**
+*Addressing:*
 
 Both PMP and SPMP entries will be supported contiguously.
 The PMP entries begin with the lowest CSR number, while the SPMP entries begin with `mpmpdeleg.pmpnum`.
@@ -54,10 +52,9 @@ The remaining entries, `PMPResource[16]` to `PMPResource[63]`, would be mapped a
 
 From a software perspective, the SPMP entries start from `SPMP[0]`.
 The available number of SPMP entries can be discovered by writing to and reading from the SPMP CSRs.
-Illegal writes to SPMP CSRs will be ignored.
 
 
-**Re-configuration:**
+*Re-configuration:*
 
 M-mode software can re-configure the entries for PMP and SPMP by modifying the `mpmpdeleg` CSR.
 A re-configuration involving locked PMP entry will leave `mpmpdeleg` unchanged.
@@ -72,11 +69,18 @@ There is no ordering guarantee between writes to different `PMP_Resource` CSRs v
 
 The `spmp[i]cfg.L` bit can only be reset when accessing in M-mode via `miselect`.
 
+The `miselect` has the same view of `siselect`.
+For example, given an implementation with 64 PMP_Resource, where 48 entries are delegated to S-mode.
+S-mode can access `SPMP[0..47]` via `siselect#0..47`.
+M-mode can access `SPMP[0..47]` via `siselect#0..47` or `miselect#0..47`.
+In such a case, both privileged mode attempts to access `SPMP[i]`, where `i >= 64 - mpmpdeleg.pmpnum`, will raise an illegal instruction exception.
+
+
 [cols="^1,^2",stripes=even, options="header"]
 |===
 |`miselect` number| indirect CSR access of `mireg`
-|`miselect#1`|`mireg` -> `pmp/spmpaddr[0]`, `mireg2` -> `pmp/spmp[0]cfg`
-|`miselect#2`|`mireg` -> `pmp/spmpaddr[1]`, `mireg2` -> `pmp/spmp[1]cfg`
+|`miselect#0`|`mireg` -> `spmpaddr[0]`, `mireg2` -> `spmp[0]cfg`
+|`miselect#1`|`mireg` -> `spmpaddr[1]`, `mireg2` -> `spmp[1]cfg`
 |    ...     |    ...     
-|`miselect#64`|`mireg` -> `pmp/spmpaddr[63]`, `mireg2` -> `pmp/spmp[63]cfg`
+|`miselect#63`|`mireg` -> `spmpaddr[63]`, `mireg2` -> `spmp[63]cfg`
 |===
