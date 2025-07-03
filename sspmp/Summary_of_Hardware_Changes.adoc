@@ -1,7 +1,7 @@
 [[Summary_of_Hardware_Changes]]
 == Summary of Hardware Changes
 
-**Supervisor-level Changes:**
+*Supervisor-level Changes:*
 [cols="^4,^5",stripes=even, options="header"]
 |===
 |Item|Changes
@@ -10,7 +10,7 @@
 |===
 
 
-**Machine-level Changes:**
+*Machine-level Changes:*
 [cols="^4,^5",stripes=even, options="header"]
 |===
 |Item|Changes

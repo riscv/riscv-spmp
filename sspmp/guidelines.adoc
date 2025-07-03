@@ -90,7 +90,7 @@ enforcement of memory protection for the supervisor across task switches.
 
 When programming SPMP entries, a trade-off exists between using exclusively
 Naturally Aligned Power-Of-Two (NAPOT) or Top-Of-Range (TOR) address-matching
-modes.
+modes (see <<address_matching>>).
 
 While NAPOT allows compact encoding for power-of-two-aligned regions using a
 single entry, it may lead to internal fragmentation if the region size exceeds
@@ -100,9 +100,9 @@ region (base and top), which may exhaust available entries more quickly.
 However, for regions that are naturally power-of-two aligned, TOR may still be
 encoded with fewer entries.
 
-This trade-off becomes especially relevant in MCU environments, where local
+This trade-off becomes especially relevant in Microcontroller Unit (MCU) environments, where local
 memories are often sparsely mapped to fixed address ranges associated with
-specific core functions. In such cases, exclusive use of NAPOT or naïvely
+specific core functions. In such cases, exclusive use of NAPOT or naively
 pairing TOR entries may be inefficient or lead to undesirable gaps in
 protection. Additionally, while it is possible to define multiple contiguous
 regions with different access permissions using overlapping or consecutive TOR

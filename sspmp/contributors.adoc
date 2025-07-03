@@ -26,3 +26,4 @@ The proposed SPMP specifications (non-ratified, under discussion) has been contr
 * Zeyu Mi
 * Fabrice Marinet
 * Noureddine Ait Said
+* Xi Zhao
