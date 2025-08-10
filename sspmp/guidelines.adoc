@@ -29,12 +29,12 @@ them with the appropriate address ranges and permissions for S-mode software dur
 
 The OS begins by allocating SPMP entries and populating the `spmpaddr[i]` and
 `spmpcfg[i]` CSRs with the appropriate address ranges and permissions for each
-user-mode task. If the OS itself is to be protected using SPMP, additional
-entries must be allocated and configured with the OS memory ranges, with the `S`
-bit (Supervisor bit) set in `spmpcfg[i]`. 
+user-mode task.
 
-After initializing the entries, the OS must also set the corresponding bits in
-the `spmpswitch` register to activate these entries.
+If the OS itself is to be protected using SPMP, additional
+entries must be allocated and configured with the OS memory ranges, with the `S`
+bit (Supervisor bit) set in `spmpcfg[i]`.  After initializing the entries, the
+OS must also set the corresponding bits in the `spmpswitch` register to activate these entries for itself.
 
 Prior to launching the first user task, the OS sets the bits in `spmpswitch`
 corresponding to the SPMP entries assigned to that task. During a context
@@ -52,9 +52,7 @@ for user tasks on every context switch. Notably, for any given hart, the number
 of SPMP entries must still be sufficient to hold both the supervisor entries
 and the entries for the currently executing user-mode task.
 
-Where sufficient SPMP entries exist to cover all tasks and the OS, an
-implementation may simply update `spmpswitch` on context switches. Otherwise,
-the following sequence is recommended for dynamic reconfiguration:
+The following sequence is recommended for dynamic reconfiguration:
 
 1. *Disable Entries for the Outgoing Task*.
 Use the `csrc` instruction to clear the `spmpswitch` bits corresponding to the
