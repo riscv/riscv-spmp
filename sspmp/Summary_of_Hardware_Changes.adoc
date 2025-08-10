@@ -5,8 +5,8 @@
 [cols="^4,^5",stripes=even, options="header"]
 |===
 |Item|Changes
-|CSR for domain switch (optional)|2 new CSRs for RV32 and 1 for RV64
-|Indirect access to delegated PMP_Resource|64 new siselect values
+|CSR for domain switch (optional)|2 new S-mode CSRs for RV32 and 1 S-mode CSR for RV64
+|Indirect access to delegated `PMP_Resource`|64 new siselect values
 |===
 
 
@@ -14,6 +14,6 @@
 [cols="^4,^5",stripes=even, options="header"]
 |===
 |Item|Changes
-|CSR for resource sharing|1 new CSR
-|Indirect access to PMP_Resource|64 new siselect values
+|CSR for resource sharing|1 new M-mode CSR
+|Indirect access to `PMP_Resource`|64 new miselect values
 |===
