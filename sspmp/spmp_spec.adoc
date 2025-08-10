@@ -193,7 +193,7 @@ It aligns with PMP/ePMP. Please refer to the "Address Matching" subsection of PM
 ====
 Software may determine the SPMP granularity by writing zero to `spmp0cfg`, then writing all ones to `spmpaddr0`, then reading back `spmpaddr0`. If asciimath:[G] is the index of the least-significant bit set, the SPMP granularity is asciimath:[2^{G+2}]
 
-The `spmp[i]cfg.A` is WARL, so an implmentation can hardwire the address matching method to a specific one it desires.
+The `spmp[i]cfg.A` is WARL, so an implementation can hardwire the address matching method to a specific one it desires.
 ====
 
 // === Supervisor Security Configuration (sseccfg) CSR
@@ -217,9 +217,9 @@ The `spmp[i]cfg.A` is WARL, so an implmentation can hardwire the address matchin
 
 * SPMP entries are statically prioritized.
 +
-* The lowest-numbered SPMP entry that matches any byte of access (indicated by an address and the accessed length) determines whether that access is allowed or denied.
+* The lowest-numbered SPMP entry that matches any byte of an access (indicated by an address and the accessed length) determines whether that access is allowed or denied.
 +
-* The SPMP entry must match *all* bytes of access, or the access fails and an instruction, load, or store page-fault exception is generated (see <<exceptions>>).
+* This matching SPMP entry must match *all* bytes of the access, or the access fails and an instruction, load, or store page-fault exception is generated (see <<exceptions>>).
 +
 * This matching is done irrespective of the S, R, W, and X bits.
 
@@ -235,8 +235,8 @@ On some implementations, misaligned loads, stores, and instruction fetches may a
 In particular, a portion of a misaligned store that passes the SPMP check may become visible, even if another portion fails the SPMP check.
 The same behavior may manifest for stores wider than XLEN bits (e.g., the FSD instruction in RV32D), even when the store address is naturally aligned.
 
-1. If the effective privilege mode of the access is M, the access is `allowed`;
-2. If the effective privilege mode of the access is S/U and no SPMP entry matches, but at least one SPMP entry is delegated, the access is `denied`; (Description of the delegated SPMP entry is in <<PMP_Resource_Sharing>>)
+1. If the effective privilege mode of the access is M, the access is `allowed`.
+2. If the effective privilege mode of the access is S/U and no SPMP entry matches, but at least one SPMP entry is delegated, the access is `denied`; (Description of the mechanism of SPMP entry delegation is in <<PMP_Resource_Sharing>>).
 3. Otherwise, each access is checked according to the permission bits in the matching SPMP entry. That access is allowed if it satisfies the permission checking with the SRWX encoding corresponding to the access type.
 
 
@@ -245,7 +245,7 @@ The same behavior may manifest for stores wider than XLEN bits (e.g., the FSD in
 The SPMP rules are checked for all implicit and explicit accesses in all S-mode and lesser-privileged modes.
 Implicit accesses in S-mode are treated as S-mode accesses.
 
-The execution environment should configure SPMP entry(s) to grant the most permissive access to S-mode. Then S-mode code can set up SPMP as desired.
+The execution environment should configure SPMP entry(s) to grant the most permissive access to S-mode. S-mode software can then further refine SPMP entries as desired.
 ====
 
 [[spmp-and-paging]]
@@ -265,7 +265,7 @@ SPMP and paged virtual memory cannot be active simultaneously for two reasons:
 +
 . Sufficient protection is provided by paged virtual memory.
 
-That means SPMP is enabled when `satp.mode==Bare` and SPMP is implemented.
+That means SPMP is always enabled when `satp.mode==Bare` and SPMP is implemented.
 
 
 [NOTE]
@@ -281,8 +281,8 @@ Please refer to Table "Encoding of satp MODE field" in the {privspec} for detail
 === Exceptions
 When an access fails, SPMP generates an exception based on the access type (i.e., load accesses, store/AMO accesses, and instruction fetches). Each exception has a different code.
 
-The SPMP reuses page fault exception codes for SPMP faults since page faults are typically delegated to S-mode.
-S-mode software (i.e., OS) can distinguish between SPMP and page faults by checking `satp.mode`, since SPMP and paged virtual memory cannot be active simultaneously (as described in <<spmp-and-paging>>).
+The SPMP extension reuses page fault exception codes for SPMP faults since page faults are typically delegated to S-mode.
+S-mode software (i.e., an OS) can distinguish between SPMP-generated exceptions and page faults by checking `satp.mode`, since SPMP and paged virtual memory cannot be active simultaneously (as described in <<spmp-and-paging>>).
 
 Note that a single instruction may generate multiple accesses, which may not be mutually atomic.
 
@@ -301,7 +301,7 @@ Table of exception codes:
 Please refer to Table "Supervisor cause register (scause) values after trap" in the {privspec} for detailed information on exception codes.
 ====
 
-*Delegation*: Unlike PMP, which uses access faults for violations, SPMP uses page faults for violations. The benefit of using page faults is that the violations caused by SPMP can be delegated to S-mode, while the access violations caused by PMP can still be handled by machine mode.
+*Delegation*: Unlike PMP, which uses access faults for violations, SPMP uses page faults for violations. The benefit of using page faults is that the violations caused by SPMP can be delegated to S-mode, while the access violations caused by PMP may remain undelegated and thus still be handled by machine mode.
 
 
 
@@ -352,10 +352,10 @@ Utilizing `spmpswitch` for optimizing context switches can be beneficial in seve
 [[access_method]]
 === Access Method of SPMP CSRs
 *Indirect CSR access*: The SPMP CSRs are accessed indirectly.
-Each combination of `siselect` and `sireg` represents an access to the corresponding SPMP CSR.
+This indirect CSR access avoids the potential cost in pipeline flushes due to the `switch` statement or series of `if` statements that would otherwise be required.
 
-The indirect CSR access avoids the potential cost in pipeline flushes.
-However, there is no ordering guarantee between writes to different SPMP CSRs, except when explicitly executing an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0`.
+Each combination of `siselect` and `sireg` represents an access to the corresponding SPMP CSR.
+There is no ordering guarantee between writes to different SPMP CSRs, except when explicitly executing an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0`.
 
 S-mode can set `spmp[i]cfg.L` to lock an SPMP entry.
 When `spmp[i]cfg.L` is set, SPMP writes via `siselect` are ignored, regardless of the effective privilege mode.
@@ -374,9 +374,8 @@ Only M-mode access via `miselect` can reset `spmp[i]cfg.L` (see <<m_mode_indirec
 ====
 The rationale for the fact that M-mode cannot reset `spmp[i]cfg.L` via `siselect` is to separate this permission by the CSR address space rather than only by privileged mode.
 
-The rationale for SPMP only assign one entry per siselect value is due to performance consideration.
-If multiple SPMP entries are assigned to each `siselect`, a jump table or additional calculations would be needed to determine which `sireg` to assess.
+The rationale for SPMP to only assign one entry per `siselect` value is due to a performance consideration.
+If multiple SPMP entries are assigned to each `siselect`, a jump table or additional calculations would be needed to determine which `sireg` to access.
 
-Please refer to the `Sscsrind` extension specification for details on indirect CSR accesses:
-https://github.com/riscv/riscv-indirect-csr-access
+Please refer to the `Sscsrind` extension specification in the {privspec} for details on indirect CSR accesses.
 ====
