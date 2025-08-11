@@ -21,7 +21,7 @@ The 16-bit CSR shown in <<mpmpdeleg_format_32>> and <<mpmpdeleg_format_rv64>> ha
 . Any PMP_Resource greater than or equal to the `pmpnum` is delegated to S-mode (SPMP). The lower numbered PMP_Resource are left for M-mode (PMP).
 . M-mode could set `pmpnum>=64` (the number of implemented PMP_Resource), to reserve all resources for PMP.
 . M-mode could set `pmpnum=0` to delegate all PMP_Resource to SPMP. 
-. The reset value of `pmpnum` is `0b100_0000` (no delegation).
+. For implementations that do not hardwire the `pmpnum`, the reset value of `pmpnum` is `0b100_0000` (no delegation).
 . The `pmpnum` is locked when `mseccfg.MML` is set (Please refer to the `Smepmp` extension specification for details on `mseccfg.MML`).
 . If the SPMP entry with lowest CSR number is configured with TOR address-matching mode (i.e., `spmp[0]cfg.A == TOR`), zero is used for the lower bound.
 
