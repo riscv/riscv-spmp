@@ -80,7 +80,7 @@ enables the SPMP entries allocated to the incoming task.
 [NOTE] 
 ==== 
 It is recommended that SPMP entries configured to protect the
-supervisor (i.e., entries with `spmpXcfg[i].S = 1`) remain resident and are not
+supervisor (i.e., entries with `spmpcfg[i].U == 0`) remain resident and are not
 reprogrammed during the context-switch process. Maintaining these entries as
 persistent minimizes reconfiguration overhead and ensures consistent
 enforcement of memory protection for the supervisor across task switches.
@@ -145,7 +145,7 @@ across updates to the following CSRs: `spmpaddr[i]`, `spmpcfg[i]` , and
 only for RV32 systems with more than 32 SPMP entries, where both `spmpswitch`
 and `spmpswitchh` must be updated in coordination.
 
-To prevent asynchronous supervisor-level interrupts during reconfiguration, the
+To prevent asynchronous S-mode interrupts during reconfiguration, the
 supervisor must clear the `SIE` (Supervisor Interrupt Enable) bit in the
 `sstatus` CSR. Furthermore, synchronisation mechanisms (e.g., mutexes or
 spinlocks) must be employed to serialise access to SPMP CSRs in multi-threaded
