@@ -1,86 +1,66 @@
-== Machine-level Modification
+[[m-mode-modification]]
+== Machine Mode Modification
 
 Given that the PMP and SPMP registers have a similar layout of address/config registers and the same address matching logic,
 reusing registers and comparators between PMP and SPMP may be beneficial (in some cases) to save hardware resources.
 This chapter introduces the resource sharing mechanism that can support dynamic reallocation of hardware resources between PMP and SPMP.
 
-[[PMP_Resource_Sharing]]
+[[PMP_Entry_Sharing]]
 === Resource Sharing between PMP and SPMP
 
-Implementations should consider PMP/SPMP entries as a pool of entities, each of which is called a `PMP_Resource`.
-Specifically, each `PMP_Resource` consists of an address CSR, a configuration CSR, and associated micro-architecture state.
-A new M-mode CSR called `mpmpdeleg` is introduced to control the sharing of PMP_Resource entities between PMP and SPMP.
+Implementations should consider PMP/SPMP entries as a pool of entities, each of which is called a `PMP_Entry`.
+Specifically, each `PMP_Entry` consists of an address CSR, a configuration CSR, and associated microarchitecture state.
+A new M-mode CSR called `mpmpdeleg` is introduced to control the sharing of PMP_Entry entities between PMP and SPMP.
 
-In the following description, we will refer to the PMP/SPMP entity from the hardware perspective as `PMP_Resource`, and the PMP/SPMP from the software perspective as `entry`.
+In the following description, we will refer to the PMP/SPMP entity from the hardware perspective as `PMP_Entries`, and the PMP/SPMP from the software perspective as `M-level PMP entries` and `S-level PMP entries` (Referred to as PMP and SPMP entries for short).
 
 
-The 16-bit CSR shown in <<mpmpdeleg_format>> has one `pmpnum` field:
+The 32-bit `mpmpdeleg` CSRs shown in <<mpmpdeleg_format>> has one `pmpnum` field:
 
-. `pmpnum` is 7-bit, allowing a value of 0--64 to specify the number of `PMP_Resource` entities.
-. Any `PMP_Resource` entity with an index greater than or equal to the `pmpnum` is delegated to S-mode (SPMP). The lower numbered `PMP_Resource` entities are left for M-mode (PMP).
-. M-mode could set `pmpnum=64` (the number of implemented `PMP_Resource` entities), to reserve all resources for PMP.
-. M-mode could set `pmpnum=0` to delegate all `PMP_Resource` entities to SPMP.
-. The reset value of `pmpnum` is `0b100_0000`.
+. `pmpnum` is 7-bit, allowing a value of 0--64 to specify the number of `PMP_Entry` entities. With RV32, the values of `pmpnum`, can only be a multiple of 4 (the lowest 2 bits are read-only 0); with RV64, it can only be a multiple of 8 (the lowest 3 bits are read-only 0). This design avoids sharing the same configuration CSR between S-level and M-level.
+. Any `PMP_Entry` entity with an index greater than or equal to the `pmpnum` is delegated to S-level (SPMP). The lower numbered `PMP_Entry` entities are left for M-level (PMP).
+. If M-mode sets the `pmpnum` to a value larger than the max number of PMP entries, the largest allowed value is returned.
+. M-mode could set `pmpnum=0` to delegate all `PMP_Entry` entities to SPMP.
+. For implementations that do not hardwire the `pmpnum`, the reset value of `pmpnum` is `0b100_0000` (no delegation).
 . The `pmpnum` is locked when `mseccfg.MML` is set. (Please refer to the `Smepmp` extension specification for details on `mseccfg.MML`.)
-
-
-[[mpmpdeleg_format]]
-.mpmpdeleg CSR format.
-include::images/bytefield/mpmpdeleg_format.adoc[]
-
-*Constraints:*
-
-. With RV32, the values of `pmpnum`, can only be a multiple of 4; with RV64, it can only be a multiple of 8. This design avoids sharing the same configuration CSR between S-mode and M-mode.
-. The `pmpnum` is a WARL field. Illegal writes (e.g., values that are not multiples of 4 (RV32) or 8 (RV64)) should be ignored.
 . If the SPMP entry with lowest CSR number is configured with TOR address-matching mode (i.e., `spmp[0]cfg.A == TOR`), zero is used for the lower bound.
+
+An S-mode read-only shadow of `mpmpdeleg` CSR, called `spmpdeleg`, is provided to S-mode software to obtain the `pmpnum` value without invoking an SBI call.
+
+
+[[mpmpdeleg_format_32]]
+.mpmpdeleg CSR format, RV32.
+include::images/bytefield/mpmpdeleg_format_rv32.adoc[]
+
+[[mpmpdeleg_format_rv64]]
+.mpmpdeleg CSR format, RV64.
+include::images/bytefield/mpmpdeleg_format_rv64.adoc[]
+
 
 
 [NOTE]
 ====
 The `mpmpdeleg` CSR is WARL, and allows an implementation to hardwire the PMP/SPMP split if desired.
-
-To reduce context-switch overhead, M-mode software should evaluate the number of SPMP rules each S-mode context needs and set `mpmpdeleg.pmpnum` accordingly.
 ====
 
 *Addressing:*
 
 Both PMP and SPMP entries will be supported contiguously.
-The PMP entries begin with the lowest CSR number, while the SPMP entries begin with `mpmpdeleg.pmpnum`.
-For instance, given an implementation with a total of 64 `PMP_Resource` entities, if `mpmpdeleg.pmpnum` is set to 16 during runtime,
-`PMP_Resource[0]` to `PMP_Resource[15]` would map to `PMP[0]` to `PMP[15]`.
-The remaining entities, `PMP_Resource[16]` to `PMP_Resource[63]`, would be mapped as `SPMP[0]` to `SPMP[47]`.
+The PMP entries begin with the lowest CSR number, while the SPMP entries begin with `pmpnum`.
+For instance, given an implementation with a total of 64 `PMP_Entry` entities, if `pmpnum` is set to 16 during runtime,
+`PMP_Entry[0]` to `PMP_Entry[15]` would map to `PMP[0]` to `PMP[15]`.
+The remaining entities, `PMP_Entry[16]` to `PMP_Entry[63]`, would be mapped as `SPMP[16]` to `SPMP[63]`.
+A read of an out-of-index PMP_Entry (e.g., `PMP[16]` or `SPMP[15]`) will return 0, and a write to such a PMP_Entry will be ignored.
 
-From a software perspective, the SPMP entries start from `SPMP[0]`.
-The available number of SPMP entries can be discovered by writing to and reading from the SPMP CSRs.
 
+[NOTE]
+====
+Software that uses SPMP should start with `SPMP[pmpnum]`.
+====
 
 *Re-configuration:*
 
-M-mode software can re-configure the entries for PMP and SPMP by modifying the `mpmpdeleg` CSR.
-A re-configuration that would move a locked PMP entry to an SPMP entry will leave `mpmpdeleg` unchanged.
+. M-mode software can re-configure the allocation of entries for PMP vs. SPMP by modifying the `mpmpdeleg` CSR.
++
+. The behavior that attempts to modify `mpmpdeleg`, which delegates a locked PMP entry to an SPMP entry, is *UNDEFINED*.
 
-[[m_mode_indirect_access]]
-=== Access Method of PMP_Resource
-
-*Indirect CSR access*: `PMP_Resource` CSRs can be accessed indirectly from M-mode.
-Each combination of `miselect` and `mireg` represents an access to the corresponding `PMP_Resource` CSR.
-
-There is no ordering guarantee between writes to different `PMP_Resource` CSRs via indirect access, except when explicitly executing an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0`.
-
-The `spmp[i]cfg.L` bit can only be reset when accessing in M-mode via `miselect`.
-
-The `miselect` has the same view of `siselect`.
-For example, given an implementation with 64 `PMP_Resource`, where 48 entities are delegated to S-mode,
-S-mode can access `SPMP[0..47]` via `siselect#0..47`, and
-M-mode can access `SPMP[0..47]` via `siselect#0..47` or `miselect#0..47`.
-In such a case, both privileged mode attempts to access `SPMP[i]`, where `i >= (64 - mpmpdeleg.pmpnum)`, will raise an illegal instruction exception.
-
-
-[cols="^1,^2",stripes=even, options="header"]
-|===
-|`miselect` number| indirect CSR access of `mireg`
-|`miselect#0`|`mireg` -> `spmpaddr[0]`, `mireg2` -> `spmp[0]cfg`
-|`miselect#1`|`mireg` -> `spmpaddr[1]`, `mireg2` -> `spmp[1]cfg`
-|    ...     |    ...     
-|`miselect#63`|`mireg` -> `spmpaddr[63]`, `mireg2` -> `spmp[63]cfg`
-|===
