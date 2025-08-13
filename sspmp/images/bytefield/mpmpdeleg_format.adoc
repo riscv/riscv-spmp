@@ -4,16 +4,16 @@
 [bytefield]
 ----
 (defattrs :plain [:plain {:font-family "M+ 1p Fallback" :font-size 20}])
-(def left-margin 30)
-(def right-margin 30)
 (def row-height 30)
 (def row-header-fn nil)
 (def boxes-per-row 16)
-(draw-column-headers {:height 30 :font-size 22 :labels (reverse ["0" "" "" "" "" "" "6" "7" "" "" "" "" "" "" "" "15"])})
+(draw-column-headers {:height 20 :font-size 14 :labels (reverse ["0" "" "2" "3" "" "" "6" "7" "" "" "" "" "" "" "" "15"])})
 
-(draw-box "Reserved" {:font-size 16 :span 9})
-(draw-box "pmpnum (WARL)" {:font-size 16 :span 7})
+(draw-box (text "Reserved (WPRI)" {:font-size 16}) {:span 9})
+(draw-box (text "pmpnum (WARL)" {:font-size 16}) {:span 4})
+(draw-box (text "0" {:font-size 16}) {:span 3})
 
-(draw-box "9" {:font-size 14 :span 9 :borders {}})
-(draw-box "7" {:font-size 14 :span 7 :borders {}})
+(draw-box (text "9" {:font-size 14}) {:span 9 :borders {}})
+(draw-box (text "4" {:font-size 14}) {:span 4 :borders {}})
+(draw-box (text "3" {:font-size 14}) {:span 3 :borders {}})
 ----
