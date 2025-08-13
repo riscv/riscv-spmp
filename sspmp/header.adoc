@@ -36,6 +36,9 @@ endif::[]
 :footnote:
 :xrefstyle: short
 
+// Handy macro. Reference it in the text via {privspec}.
+:privspec: "RISC-V Privileged Architecture"
+
 = RISC-V S-mode Physical Memory Protection (SPMP)
 Editor - Dong Du, Bicheng Yang, RISC-V SPMP Task Group
 

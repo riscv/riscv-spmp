@@ -1,17 +1,17 @@
 [[S-mode_Physical_Memory_Protection]]
 == S-mode Physical Memory Protection (SPMP)
 
-An optional RISC-V S-mode Physical Memory Protection (SPMP) provides per-hart supervisor-mode control registers to allow physical memory access privileges (read, write, execute) to be specified for each physical memory region.
+The RISC-V S-mode Physical Memory Protection (SPMP) extension provides per-hart supervisor-mode control registers to allow physical memory access privileges (read, write, execute) to be specified for each physical memory region.
 // The SPMP is also applied to data accesses in M-mode when the MPRV bit in mstatus is set and the MPP field in mstatus contains S or U.
 
 // Like PMP, the granularity of SPMP access control settings is platform-specific and, within a platform, may vary by physical memory region. However, the standard SPMP encoding support regions as small as four bytes.
 
 Memory accesses succeed only if both PMP/ePMP and SPMP permission checks pass.
 The implementation can perform SPMP checks in parallel with the PMA and PMP checks.
-The SPMP exception reports have higher priority than PMP or PMA exceptions (i.e., if the access violates both SPMP and PMP/PMA, the SPMP exception will be reported).
+The SPMP exception has higher priority than PMP or PMA exceptions (i.e., if the access violates both SPMP and PMP/PMA, the SPMP exception will be reported).
 
 SPMP checks will be applied to all accesses whose effective privilege mode is S or U, including instruction fetches and data accesses in S and U mode,
-and data accesses in M-mode when the MPRV bit in mstatus is set and the MPP field in mstatus contains S or U.
+and data accesses in M-mode when the MPRV bit in `mstatus` is set and the MPP field in mstatus contains S or U.
 
 // SPMP registers can be modified by M-mode and S-mode software.
 
@@ -26,7 +26,7 @@ SPMP can also revoke permissions from S-mode.
 +
 . The `Sscsrind` extension must be implemented to support indirect CSR access.
 +
-. The `sstatus.SUM` (permit Supervisor User Memory access) bit must be *writable*.
+. The `sstatus.SUM` (permit Supervisor User Memory access) bit must be *writable*, which is a change from the Privileged Architecture.
 +
 [NOTE]
 ====
@@ -39,7 +39,7 @@ ____
 In SPMP, this bit modifies the privilege with which S-mode loads and stores access to physical
 memory, hence the need to make it writable.
 ====
-. The `sstatus.MXR` (Make eXecutable Readable) bit must be *writable*.
+. The `sstatus.MXR` (Make eXecutable Readable) bit must be *writable*, which is also a change from the Privileged Architecture.
 +
 [NOTE]
 ====
@@ -70,7 +70,7 @@ SPMP entries are described by an 16-bit configuration register and one XLEN-bit 
 ====
 An SPMP entry denotes a pair of `spmpcfg[i]` / `spmpaddr[i]` registers.
 
-An SPMP rule denotes the contents of a `spmpcfg` register and its associated `spmpaddr` register(s), that encode a valid protected physical memory region, where `spmpcfg[i].A != OFF`, and if `spmpcfg[i].A == TOR, spmpaddr[i-1] < spmpaddr[i]`.
+An SPMP rule is described by the contents of an `spmpcfg` register and its associated `spmpaddr` register(s) that together encode a valid protected physical memory region and its restrictions, where `spmpcfg[i].A != OFF`, and if `spmpcfg[i].A == TOR` then `spmpaddr[i-1] < spmpaddr[i]`.
 ====
 
 // [[spmpcfg-layout]]
@@ -81,8 +81,8 @@ An SPMP rule denotes the contents of a `spmpcfg` register and its associated `sp
 // .RV64 SPMP configuration CSR layout.
 // include::images/bytefield/spmp-rv64.adoc[]
 
-The SPMP address registers are CSRs named `spmpaddr0`-`spmpaddr63`.
-Each SPMP address register encodes bits 33-2 of 34-bit physical address for RV32, as shown in <<spmpaddr-rv32>>.
+The SPMP address registers are CSRs named `spmpaddr0`-`spmpaddr63`, and has the same layout as the PMP architecture.
+For RV32, each SPMP address register encodes bits 33-2 of 34-bit physical address, as shown in <<spmpaddr-rv32>>.
 For RV64, each SPMP address encodes bits 55-2 of a 56-bit physical address, as shown in <<spmpaddr-rv64>>.
 Fewer address bits may be implemented for specific reasons, e.g., systems with smaller physical address space.
 The number of address bits should be the same for all *writable SPMP entries*.
@@ -96,12 +96,12 @@ include::images/bytefield/spmpaddr-rv32.adoc[]
 .SPMP address register format, RV64.
 include::images/bytefield/spmpaddr-rv64.adoc[]
 
-The layout of SPMP configuration registers is shown in <<spmpcfg>>. The register is WARL.
+The layout within each SPMP configuration register is shown in <<spmpcfg>>. The register is WARL.
 The rules and encodings for permission are explained in <<encoding>>.
 
 . The R/W/X bits control read, write, and instruction execution permissions.
 
-. The A field will be described in the following sections.
+. The A field will be described in <<address_matching>>.
 
 . Bits 5 and 6 are used for memory types if `Smpmpmt` is implemented, else reserved (please refer to the specification of `Smpmpmt` for more details).
 
@@ -132,7 +132,7 @@ Additionally, if `spmpcfg[i].A` of the locked entry is set to TOR, writes to `sp
 
 The L bit can be used by M-mode to contain software running in S-mode by setting and locking highest-priority SPMP entries with `spmpcfg[i].U == 1`. This can be useful to prevent privilege escalation attacks that would reprogram SPMP entries used to limit S-mode accesses.
 
-Although this could arguably be achieved by using PMP/ePMP entries, the resulting configuration would not be equivalent as they do not differentiate between S and U modes. Furthermore, in cases resource sharing is statically defined (i.e., `mpmpdeleg.pmpnum` is hardwired - see <<PMP_Resource_Sharing>>) there may be insufficient PMP/ePMP entries available to implement the desired isolation.
+Although this could arguably be achieved by using PMP/ePMP entries, the resulting configuration would not be equivalent as they do not differentiate between S and U modes. Furthermore, in cases resource sharing is statically defined (i.e., `mpmpdeleg.pmpnum` is hardwired - see <<PMP_Entry_Sharing>>) there may be insufficient PMP/ePMP entries available to implement the desired isolation.
 ====
 
 
@@ -147,9 +147,9 @@ SPMP has three kinds of rules: *S-mode-only*, *U-mode-only* and *Shared-Region* 
 +
 . A *U-mode-only* rule is *enforced* on User modes and is either *denied* or *enforced* on Supervisor mode depending on the value of `sstatus.SUM` bit:
 +
-* If `sstatus.SUM` is set, a U-mode-only rule is enforced on Supervisor mode, yet not be executable. This ensures the Supervisor Memory Execution Prevention (SMEP).
+* If `sstatus.SUM` is set, a U-mode-only rule is enforced on Supervisor mode, but denies executable permission by S-mode (denoted as *EnforceNoX* in <<spmpencode>>). This ensures the Supervisor Memory Execution Prevention (SMEP) guarantee.
 +
-* If `sstatus.SUM` is unset, a U-mode-only rule is denied on Supervisor mode. This ensures the Supervisor Memory Access Prevention (SMAP).
+* If `sstatus.SUM` is unset, a U-mode-only rule is denied on Supervisor mode. This ensures the Supervisor Memory Access Prevention (SMAP) guarantee.
 +
 . A *Shared-Region* rule is *enforced* on both Supervisor and User modes, with the restriction that read and write permissions are mutually exclusive in User mode.
 +
@@ -166,13 +166,13 @@ image::SPMP_Encoding_Table_v9.svg[title="SPMP Encoding Table"]
 
 *Deny*: Access fails.
 
-*Enforce*: The R/W/X permissions are enforced on accesses.
+*Enforce*: The R/W/X permissions specified in `spmpcfg` are enforced on accesses.
 
-*EnforceNoX*: The R/W permissions are enforced on accesses, while the X bit is forced to be zero.
+*EnforceNoX*: The R/W permissions specified in `spmpcfg` are enforced on accesses, while execute permission is revoked.
 
 *Reserved*: It is reserved for future use.
 
-*SUM bit*: The SPMP uses the `sstatus.SUM` (permit Supervisor User Memory access) bit to modify the privilege with which S-mode loads and stores access to physical memory. The semantics of `sstatus.SUM` in SPMP are consistent with those of the Machine Mode ISA (Please refer to the "Memory Privilege in mstatus Register" subsection in the riscv-privileged spec for detailed information).
+*SUM bit*: The SPMP uses the `sstatus.SUM` (permit Supervisor User Memory access) bit to modify the privilege with which S-mode loads and stores access physical memory. The semantics of `sstatus.SUM` in SPMP are consistent with those of the Machine-Level ISA (please refer to the "Memory Privilege in mstatus Register" subsection in the {privspec} for detailed information).
 
 
 [[address_matching]]
@@ -190,16 +190,16 @@ The encoding of this field is shown in the following table:
 |3|NAPOT|Naturally aligned power-of-two region, ≥8 bytes
 |===
 
-It aligns with PMP/ePMP. Please refer to the "Address Matching" subsection of PMP in the riscv-privileged spec for detailed information.
+It aligns with PMP/ePMP. Please refer to the "Address Matching" subsection of PMP in the {privspec} for detailed information.
 
 
 [NOTE]
 ====
 Software may determine the SPMP granularity by writing zero to `spmpcfg[i]`, then writing all ones to `spmpaddr[i]`, then reading back `spmpaddr[i]`. If asciimath:[G] is the index of the least-significant bit set, the SPMP granularity is asciimath:[2^{G+2}]
 
-Software may also determine the size of physical address by setting `spmpcfg[i].A == 0b11`, then writing all ones to `spmpaddr[i]` and reading back. (Please refer to the "NAPOT range encoding in PMP address and configuration registers" table in the riscv-privileged spec for detailed information.)
+Software may also determine the size of physical address by setting `spmpcfg[i].A == 0b11`, then writing all ones to `spmpaddr[i]` and reading back. (Please refer to the "NAPOT range encoding in PMP address and configuration registers" table in the {privspec} for detailed information.)
 
-The `spmpcfg[i].A` is WARL, so an implmentation can hardwire the address matching method to a specific one it desires.
+The `spmpcfg[i].A` is WARL, so an implementation can hardwire the address matching method to a specific one it desires.
 ====
 
 
@@ -208,9 +208,9 @@ The `spmpcfg[i].A` is WARL, so an implmentation can hardwire the address matchin
 
 * SPMP entries are statically prioritized.
 +
-* The lowest-numbered SPMP entry that matches any byte of access (indicated by an address and the accessed length) determines whether that access is allowed or denied.
+* The lowest-numbered SPMP entry that matches any byte of an access (indicated by an address and the accessed length) determines whether that access is allowed or denied.
 +
-* The SPMP entry must match *all* bytes of access, or the access fails and an instruction, load, or store page-fault exception is generated (see <<exceptions>>).
+* This matching SPMP entry must match *all* bytes of the access, or the access fails and an instruction, load, or store page-fault exception is generated (see <<exceptions>>).
 +
 * This matching is done irrespective of the SHARED, U, R, W, and X bits.
 
@@ -219,8 +219,8 @@ On some implementations, misaligned loads, stores, and instruction fetches may a
 In particular, a portion of a misaligned store that passes the SPMP check may become visible, even if another portion fails the SPMP check.
 The same behavior may manifest for stores wider than XLEN bits (e.g., the FSD instruction in RV32D), even when the store address is naturally aligned.
 
-1. If the effective privilege mode of the access is M, the access is `allowed`;
-2. If the effective privilege mode of the access is S/U and no SPMP entry matches, but at least one SPMP entry is delegated, the access is `denied`; (Description of the delegated SPMP entry is in <<PMP_Resource_Sharing>>)
+1. If the effective privilege mode of the access is M, the access is `allowed`.
+2. If the effective privilege mode of the access is S/U and no SPMP entry matches, but at least one SPMP entry is delegated, the access is `denied`.
 3. Otherwise, each access is checked according to the permission bits in the matching SPMP entry. That access is allowed if it satisfies the permission checking with the encoding corresponding to the access type.
 
 
@@ -229,7 +229,7 @@ The same behavior may manifest for stores wider than XLEN bits (e.g., the FSD in
 The SPMP rules are checked for all implicit and explicit accesses in all S-mode and lesser-privileged modes.
 // Implicit accesses in all effective privilege modes are treated as is.
 
-The execution environment should configure SPMP entry(s) to grant the most permissive access to S-mode. Then S-mode code can set up SPMP as desired.
+The execution environment should configure SPMP entry(s) to grant the most permissive access to S-mode. S-mode software can then further refine SPMP entries as desired.
 ====
 
 
@@ -237,16 +237,16 @@ The execution environment should configure SPMP entry(s) to grant the most permi
 [[access_method]]
 === Access Method of SPMP CSRs
 *Indirect CSR access*: The SPMP CSRs are accessed indirectly.
-Each combination of `siselect` and `sireg` represents an access to the corresponding SPMP CSR.
+This indirect CSR access avoids the potential cost in pipeline flushes due to the `switch` statement or series of `if` statements that would otherwise be required.
 
-The indirect CSR access avoids the potential cost in pipeline flushes.
-However, there is no ordering guarantee between writes to different SPMP CSRs, except when explicitly executing an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0`.
+Each combination of `siselect` and `sireg` represents an access to the corresponding SPMP CSR.
+There is no ordering guarantee between writes to different SPMP CSRs, except when explicitly executing an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0`.
 
 S-mode can set `spmpcfg[i].L` to lock an SPMP entry.
 When `spmpcfg[i].L` is set, SPMP writes via `siselect` are ignored, regardless of the effective privilege mode.
 Only M-mode access via `miselect` can reset `spmpcfg[i].L` (see <<m_mode_indirect_access>>).
 
-Given an implementation with 64 PMP_Resource, where 48 entries are delegated to S-mode.
+Given an implementation with 64 PMP_Entries, where 48 entries are delegated to S-level.
 S-mode can only access `SPMP[16..63]` via `siselect#16..63`.
 Otherwise, the reads of out-of-index SPMP entries will return zero, and writes will be ignored.
 
@@ -264,27 +264,26 @@ Otherwise, the reads of out-of-index SPMP entries will return zero, and writes w
 ====
 The rationale for the fact that M-mode cannot reset `spmpcfg[i].L` via `siselect` is to separate this permission by the CSR address space rather than only by privileged mode.
 
-The rationale for SPMP only assign one entry per siselect value is due to performance consideration.
-If multiple SPMP entries are assigned to each `siselect`, a jump table or additional calculations would be needed to determine which `sireg` to assess.
+The rationale for SPMP to only assign one entry per `siselect` value is due to a performance consideration.
+If multiple SPMP entries are assigned to each `siselect`, a jump table or additional calculations would be needed to determine which `sireg` to access.
 
-Please refer to the `Sscsrind` extension specification for details on indirect CSR accesses:
-https://github.com/riscv/riscv-indirect-csr-access
+Please refer to the `Sscsrind` extension specification in the {privspec} for details on indirect CSR accesses.
 ====
 
 
 
 [[m_mode_indirect_access]]
-=== Access Method of PMP_Resource
+=== Access Method of PMP_Entry
 
-*Indirect CSR access*: `PMP_Resource` CSRs can be accessed indirectly from M-mode.
-Each combination of `miselect` and `mireg` represents an access to the corresponding `PMP_Resource` CSR.
+*Indirect CSR access*: `PMP_Entry` CSRs can be accessed indirectly from M-mode.
+Each combination of `miselect` and `mireg` represents an access to the corresponding `PMP_Entry` CSR.
 
-There is no ordering guarantee between writes to different `PMP_Resource` CSRs via indirect access, except when explicitly executing an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0`.
+There is no ordering guarantee between writes to different `PMP_Entry` CSRs via indirect access, except when explicitly executing an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0`.
 
 The `spmpcfg[i].L` bit can only be reset when accessing in M-mode via `miselect`.
 
 The `miselect` has the same view of `siselect`.
-For example, given an implementation with 64 PMP_Resource, where 48 entries are delegated to S-mode.
+For example, given an implementation with 64 PMP_Entries, where 48 entries are delegated to S-level.
 S-mode can access `SPMP[16..63]` via `siselect#16..63`.
 M-mode can access `SPMP[16..63]` via `siselect#16..63` or `miselect#16..63`.
 In such a case, both privileged mode attempts to access `SPMP[i]`, where `i < mpmpdeleg.pmpnum`, will read zero. 
@@ -319,20 +318,20 @@ SPMP and paged virtual memory cannot be active simultaneously for two reasons:
 +
 . Sufficient protection is provided by paged virtual memory.
 
-That means SPMP is enabled when `satp.mode==Bare` and SPMP is implemented.
+That means SPMP is always enabled when `satp.mode==Bare` and SPMP is implemented.
 
 
 [NOTE]
 ====
-Please refer to Table "Encoding of satp MODE field" in the riscv-privileged spec for detailed information on the satp.MODE field.
+Please refer to Table "Encoding of satp MODE field" in the {privspec} for detailed information on the satp.MODE field.
 ====
 
 [[exceptions]]
 === Exceptions
 When an access fails, SPMP generates an exception based on the access type (i.e., load accesses, store/AMO accesses, and instruction fetches). Each exception has a different code.
 
-The SPMP reuses page fault exception codes for SPMP faults since page faults are typically delegated to S-mode.
-S-mode software (i.e., OS) can distinguish between SPMP and page faults by checking `satp.mode`, since SPMP and paged virtual memory cannot be active simultaneously (as described in <<spmp-and-paging>>).
+The SPMP extension reuses page fault exception codes for SPMP faults since page faults are typically delegated to S-mode.
+S-mode software (i.e., an OS) can distinguish between SPMP-generated exceptions and page faults by checking `satp.mode`, since SPMP and paged virtual memory cannot be active simultaneously (as described in <<spmp-and-paging>>).
 
 Note that a single instruction may generate multiple accesses, which may not be mutually atomic.
 
@@ -348,10 +347,10 @@ Table of exception codes:
 
 [NOTE]
 ====
-Please refer to Table "Supervisor cause register (scause) values after trap" in the riscv-privileged spec for detailed information on exception codes.
+Please refer to Table "Supervisor cause register (scause) values after trap" in the {privspec} for detailed information on exception codes.
 ====
 
-*Delegation*: Unlike PMP, which uses access faults for violations, SPMP uses page faults for violations. The benefit of using page faults is that the violations caused by SPMP can be delegated to S-mode, while the access violations caused by PMP can still be handled by machine mode.
+*Delegation*: Unlike PMP, which uses access faults for violations, SPMP uses page faults for violations. The benefit of using page faults is that the violations caused by SPMP can be delegated to S-mode, while the access violations caused by PMP may remain undelegated and thus still be handled by machine mode.
 
 
 
@@ -381,7 +380,7 @@ include::images/bytefield/spmpswitch-rv64.adoc[]
 
 
 Accessing `spmpswitch` CSR should follow the rule specified in <<access_method>>.
-Specifically, given an implementation with 64 PMP_Resource, where 48 entries are delegated to S-mode.
+Specifically, given an implementation with 64 PMP_Entries, where 48 entries are delegated to S-level.
 The `spmpswitch[16..63]` are used to control the activation of SPMP entries `[16..63]`.
 Writes to `spmpswitch[0..15]` are ignored.
 
