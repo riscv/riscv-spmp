@@ -32,8 +32,8 @@ The OS begins by allocating SPMP entries and populating the `spmpaddr[i]` and
 user-mode task.
 
 If the OS itself is to be protected using SPMP, additional
-entries must be allocated and configured with the OS memory ranges, with the `S`
-bit (Supervisor bit) set in `spmpcfg[i]`.  After initializing the entries, the
+entries must be allocated and configured with the OS memory ranges, with the `U`
+bit (User bit) unset in `spmpcfg[i]`.  After initializing the entries, the
 OS must also set the corresponding bits in the `spmpswitch` register to activate these entries for itself.
 
 Prior to launching the first user task, the OS sets the bits in `spmpswitch`
