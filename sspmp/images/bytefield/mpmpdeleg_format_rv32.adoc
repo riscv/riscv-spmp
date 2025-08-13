@@ -1,3 +1,6 @@
+// Because this diagram only has 16 columns, a lot of the font size directives
+// (typically ":font-size 24" throughout) from the other bytefields are not appropriate here.
+// To maintain the same look and feel, it might be worth reformatting this as a 32-column diagram.
 [bytefield]
 ----
 (defattrs :plain [:plain {:font-family "M+ 1p Fallback" :font-size 20}])
