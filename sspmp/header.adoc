@@ -1,8 +1,8 @@
 [[header]]
-:description: RISC-V S-mode Physical Memory Protection (Sspmp)
+:description: RISC-V S-level Physical Memory Protection (Sspmp)
 :company: RISC-V.org
-:revdate: 7/2025
-:revnumber: 1.0.0-rc1
+:revdate: 8/2025
+:revnumber: 1.0.0-rc2
 :revremark: This document is in development. Assume everything can change. See http://riscv.org/spec-state for details.
 :url-riscv: http://riscv.org
 :doctype: book
@@ -39,7 +39,7 @@ endif::[]
 // Handy macro. Reference it in the text via {privspec}.
 :privspec: "RISC-V Privileged Architecture"
 
-= RISC-V S-mode Physical Memory Protection (SPMP)
+= RISC-V S-level Physical Memory Protection (SPMP)
 Editor - Dong Du, Bicheng Yang, RISC-V SPMP Task Group
 
 // Preamble
@@ -66,7 +66,8 @@ include::contributors.adoc[]
 include::intro.adoc[]
 include::Resource_Sharing.adoc[]
 include::spmp_spec.adoc[]
-include::Summary_of_Hardware_Changes.adoc[]
+include::spmpswitch.adoc[]
+// include::Summary_of_Hardware_Changes.adoc[]
 include::guidelines.adoc[]
 // include::Interaction_with_hypervisor_extension.adoc[]
 include::Interaction_with_other_proposals.adoc[]
