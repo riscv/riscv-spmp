@@ -33,13 +33,13 @@ user-mode task.
 
 If the OS itself is to be protected using SPMP, additional
 entries must be allocated and configured with the OS memory ranges, with the `U`
-bit (User bit) unset in `spmpcfg[i]`.  After initializing the entries, the
+bit (User bit) cleared in `spmpcfg[i]`.  After initializing the entries, the
 OS must also set the corresponding bits in the `spmpswitch` register to activate these entries for itself.
 
 Prior to launching the first user task, the OS sets the bits in `spmpswitch`
 corresponding to the SPMP entries assigned to that task. During a context
 switch, the OS clears the current task's entry bits and sets those of the newly
-scheduled task using the `csrc` and `csrs` instructions, respectively. On RV32
+scheduled task using the `CSRRC` and `CSRRS` instructions, respectively. On RV32
 systems, both `spmpswitch` and `spmpswitchh` must be managed as a continuous
 pair.
 
@@ -55,7 +55,7 @@ and the entries for the currently executing user-mode task.
 The following sequence is recommended for dynamic reconfiguration:
 
 1. *Disable Entries for the Outgoing Task*.
-Use the `csrc` instruction to clear the `spmpswitch` bits corresponding to the
+Use the `CSRRC` instruction to clear the `spmpswitch` bits corresponding to the
 SPMP entries of the outgoing task. A bitmask representing active entries
 (typically stored in the task's control block) should be passed as an argument. 
 
@@ -66,17 +66,16 @@ memory regions of the incoming task.
 3. *Update SPMP Configuration Registers*.
 For each corresponding `spmpcfg[i]` field: 
 
-- Clear the existing configuration bits using the `csrc` instruction with an
-appropriate mask; 
+- Clear the existing configuration bits using the `CSRRC` instruction; 
 
-- Set the desired configuration using the `csrs` instruction. 
+- Set the desired configuration using the `CSRRS` instruction. 
 
 4. *Enable Entries for the Incoming Task*.
-Use the `csrs` instruction to write to `spmpswitch`, passing a bitmask that
+Use the `CSRRS` instruction to write to `spmpswitch`, passing a bitmask that
 enables the SPMP entries allocated to the incoming task.
 
-[NOTE] 
-==== 
+[NOTE]
+====
 It is recommended that SPMP entries configured to protect the
 supervisor (i.e., entries with `spmpcfg[i].U == 0`) remain resident and are not
 reprogrammed during the context-switch process. Maintaining these entries as
