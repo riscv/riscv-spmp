@@ -1,5 +1,5 @@
 [[m-mode-modification]]
-== Machine Mode Modification
+== M-level ISA Extension
 
 Given that the PMP and SPMP registers have a similar layout of address/config registers and the same address matching logic,
 reusing registers and comparators between PMP and SPMP may be beneficial (in some cases) to save hardware resources.
@@ -15,17 +15,16 @@ A new M-mode CSR called `mpmpdeleg` is introduced to control the sharing of PMP_
 In the following description, we will refer to the PMP/SPMP entity from the hardware perspective as `PMP_Entries`, and the PMP/SPMP from the software perspective as `M-level PMP entries` and `S-level PMP entries` (Referred to as PMP and SPMP entries for short).
 
 
-The 32-bit `mpmpdeleg` CSRs shown in <<mpmpdeleg_format>> has one `pmpnum` field:
+The 32-bit `mpmpdeleg` CSRs shown in <<mpmpdeleg_format_32>> and <<mpmpdeleg_format_64>> have one `pmpnum` field:
 
-. `pmpnum` is 7-bit, allowing a value of 0--64 to specify the number of `PMP_Entry` entities. With RV32, the values of `pmpnum`, can only be a multiple of 4 (the lowest 2 bits are read-only 0); with RV64, it can only be a multiple of 8 (the lowest 3 bits are read-only 0). This design avoids sharing the same configuration CSR between S-level and M-level.
+. `pmpnum` is 7-bit, allowing a value of 0--64 to specify the number of `PMP_Entry` entities. With RV32, the values of `pmpnum`, can only be a multiple of 4 (the lowest 2 bits form a WARL field that is read-only 0); with RV64, it can only be a multiple of 8 (the lowest 3 bits form a WARL field that is read-only 0). This design avoids sharing the same configuration CSR between S-level and M-level.
 . Any `PMP_Entry` entity with an index greater than or equal to the `pmpnum` is delegated to S-level (SPMP). The lower numbered `PMP_Entry` entities are left for M-level (PMP).
 . If M-mode sets the `pmpnum` to a value larger than the max number of PMP entries, the largest allowed value is returned.
 . M-mode could set `pmpnum=0` to delegate all `PMP_Entry` entities to SPMP.
-. For implementations that do not hardwire the `pmpnum`, the reset value of `pmpnum` is `0b100_0000` (no delegation).
-. The `pmpnum` is locked when `mseccfg.MML` is set. (Please refer to the `Smepmp` extension specification for details on `mseccfg.MML`.)
+. For implementations that do not hardwire the `pmpnum`, the reset value of `pmpnum` is the number of actually implemented PMP_Entries.
+// . The `pmpnum` is locked when `mseccfg.MML` is set. (Please refer to the `Smepmp` extension specification for details on `mseccfg.MML`.)
 . If the SPMP entry with lowest CSR number is configured with TOR address-matching mode (i.e., `spmp[0]cfg.A == TOR`), zero is used for the lower bound.
 
-An S-mode read-only shadow of `mpmpdeleg` CSR, called `spmpdeleg`, is provided to S-mode software to obtain the `pmpnum` value without invoking an SBI call.
 
 
 [[mpmpdeleg_format_32]]
@@ -62,5 +61,6 @@ Software that uses SPMP should start with `SPMP[pmpnum]`.
 
 . M-mode software can re-configure the allocation of entries for PMP vs. SPMP by modifying the `mpmpdeleg` CSR.
 +
-. The behavior that attempts to modify `mpmpdeleg`, which delegates a locked PMP entry to an SPMP entry, is *UNDEFINED*.
+. If a single PMP entry is locked, `pmpnum` is locked from modification.
+// . The behavior that attempts to modify `mpmpdeleg`, which delegates a locked PMP entry to an SPMP entry, is *UNDEFINED*.
 
