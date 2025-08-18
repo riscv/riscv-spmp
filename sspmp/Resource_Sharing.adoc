@@ -17,7 +17,8 @@ In the following description, we will refer to the PMP/SPMP entity from the hard
 
 The 32-bit `mpmpdeleg` CSRs shown in <<mpmpdeleg_format_32>> and <<mpmpdeleg_format_64>> have one `pmpnum` field:
 
-. `pmpnum` is 7-bit, allowing a value of 0--64 to specify the number of `PMP_Entry` entities. With RV32, the values of `pmpnum`, can only be a multiple of 4 (the lowest 2 bits form a WARL field that is read-only 0); with RV64, it can only be a multiple of 8 (the lowest 3 bits form a WARL field that is read-only 0). This realization aligns with the idea of a shared `PMP_Entries` pool, enabling flexible assignment to M-level and S-level.
+. `pmpnum` is 7-bit, allowing a value of 0--64 to specify the number of `PMP_Entry` entities. 
+// With RV32, the values of `pmpnum`, can only be a multiple of 4 (the lowest 2 bits form a WARL field that is read-only 0); with RV64, it can only be a multiple of 8 (the lowest 3 bits form a WARL field that is read-only 0). This realization aligns with the idea of a shared `PMP_Entries` pool, enabling flexible assignment to M-level and S-level.
 . Any `PMP_Entry` entity with an index greater than or equal to the `pmpnum` is delegated to S-level (SPMP). The lower numbered `PMP_Entry` entities are left for M-level (PMP).
 . If M-mode sets the `pmpnum` to a value exceeding the maximum number of actually implemented PMP entries, the largest allowed value is returned.
 . M-mode could set `pmpnum=0` to delegate all `PMP_Entry` entities to SPMP.
@@ -27,19 +28,19 @@ The 32-bit `mpmpdeleg` CSRs shown in <<mpmpdeleg_format_32>> and <<mpmpdeleg_for
 
 
 
-[[mpmpdeleg_format_32]]
-.mpmpdeleg CSR format, RV32.
-include::images/bytefield/mpmpdeleg_format_rv32.adoc[]
+// [[mpmpdeleg_format_32]]
+// .mpmpdeleg CSR format, RV32.
+// include::images/bytefield/mpmpdeleg_format_rv32.adoc[]
 
 [[mpmpdeleg_format_rv64]]
-.mpmpdeleg CSR format, RV64.
+.mpmpdeleg CSR format.
 include::images/bytefield/mpmpdeleg_format_rv64.adoc[]
 
 
 
 [NOTE]
 ====
-The `mpmpdeleg` CSR is WARL, and allows an implementation to hardwire the PMP/SPMP split if desired.
+The `mpmpdeleg.pmpnum` is WARL, and allows an implementation to hardwire the PMP/SPMP split if desired.
 ====
 
 *Addressing:*

@@ -28,7 +28,7 @@ SPMP can also revoke permissions from S-mode.
 // +
 . The `Sscsrind` extension must be implemented to support indirect CSR access.
 +
-. The `Ssstateen` extension must be implemented to support supervisor state enablement.
+. The `Smstateen` extension must be implemented to support supervisor state enablement.
 +
 . The `sstatus.SUM` (permit Supervisor User Memory access) bit must be *writable*, which is a change from the Privileged Architecture. In SPMP, this bit modifies the privilege with which S-mode loads and stores access to physical memory. Hence, the need to make it writable.
 // The {privspec} states that:
