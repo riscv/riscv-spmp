@@ -4,42 +4,33 @@
 Context switching with SPMP requires updating up to 64 address and 8 configuration registers (RV64).
 This chapter introduces the *`Sspmpsw`*, an optional extension for optimizing the context switching performance of the SPMP.
 
-* In RV64: one 64-bit WARL CSR called `spmpswitch` is added.
-* In RV32: in addition to `spmpswitch`, a 32-bit WARL CSR called `spmpswitchh` is added, which is an alias of the upper half of `spmpswitch`.
-// * Software can discover the context switching optimization by writing to and reading back the `spmpswitch` CSR.
+* In RV64: one 64-bit WARL CSR called `sspmpswitch` is added.
+* In RV32: in addition to `sspmpswitch`, a 32-bit WARL CSR called `sspmpswitchh` is added, which is an alias of the upper half of `sspmpswitch`.
 
-Each bit of `spmpswitch` controls the activation of its corresponding SPMP entry. An entry is active only when both its `spmpswitch[i]` bit and `spmpcfg[i].A` field are set, i.e., `spmpswitch[i] & spmpcfg[i].A!=0`.
+Each bit of `sspmpswitch` controls the activation of its corresponding SPMP entry. An entry is active only when both its `sspmpswitch[i]` bit and `spmpcfg[i].A` field are set, i.e., `sspmpswitch[i] & spmpcfg[i].A!=0`.
 
-If an entry `i` is locked (i.e., `spmpcfg[i].L == 1`), then `spmpswitch[i]` is *read-only* using *S-mode CSRs*.
+If an entry `i` is locked (i.e., `spmpcfg[i].L == 1`), then `sspmpswitch[i]` is *read-only* using *S-mode CSRs*.
 
 Please refer to <<guidelines>> for how software can use the optimization to reduce context switch overhead.
 
-// [[spmpswitch-rv32]]
-// .SPMP domain switch registers (`spmpswitch` and `spmpswitchh`), RV32.
-// include::images/bytefield/spmpswitch-rv32.adoc[]
 
-// [[spmpswitch-rv64]]
-// .SPMP domain switch register (`spmpswitch`), RV64.
-// include::images/bytefield/spmpswitch-rv64.adoc[]
-
-
-Accessing `spmpswitch` CSR should follow the rule specified in <<access_method>>.
+Accessing `sspmpswitch` CSR should follow the rule specified in <<access_method>>.
 Specifically, given an implementation with 64 PMP_Entries, where 48 entries are delegated to S-level.
-The `spmpswitch[16..63]` are used to control the activation of SPMP entries `[16..63]`.
-Writes to `spmpswitch[0..15]` are ignored.
+The `sspmpswitch[16..63]` are used to control the activation of SPMP entries `[16..63]`.
+Writes to `sspmpswitch[0..15]` are ignored.
 
-When `spmpswitch` is implemented and `spmpcfg[i].A == TOR`, an entry matches any address asciimath:[y] where:
+When `sspmpswitch` is implemented and `spmpcfg[i].A == TOR`, an entry matches any address asciimath:[y] where:
 
 1. `spmpaddr[i-1]` asciimath:[\le y <] `spmpaddr[i]`
 +
-2. This matching occurs regardless of `spmpcfg[i-1]` and `spmpswitch[i-1]` values
+2. This matching occurs regardless of `spmpcfg[i-1]` and `sspmpswitch[i-1]` values
 
 
 [NOTE]
 ====
-Utilizing `spmpswitch` for optimizing context switches can be beneficial in several scenarios, including (but not limited to):
+Utilizing `sspmpswitch` for optimizing context switches can be beneficial in several scenarios, including (but not limited to):
 
-1. When the number of available SPMP entries is sufficient to accommodate all tasks executing on a given hart, each task’s memory regions can be permanently mapped to a fixed subset of SPMP entries. In this model, switching SPMP contexts reduces to a single write to `spmpswitch` (or two writes in RV32 systems: `spmpswitch` and `spmpswitchh`) to deactivate the outgoing task and enable the entries associated with the incoming task.
+1. When the number of available SPMP entries is sufficient to accommodate all tasks executing on a given hart, each task’s memory regions can be permanently mapped to a fixed subset of SPMP entries. In this model, switching SPMP contexts reduces to a single write to `sspmpswitch` (or two writes in RV32 systems: `sspmpswitch` and `sspmpswitchh`) to deactivate the outgoing task and enable the entries associated with the incoming task.
 +
 2. A subset of SPMP entries may be reserved for timing-critical or latency-sensitive tasks, such as interrupt handlers. This ensures minimal overhead when switching into these contexts, avoiding the need for dynamic reconfiguration of SPMP entries.
 ====
