@@ -84,7 +84,8 @@ include::images/bytefield/spmpaddr-rv32.adoc[]
 .SPMP address register format, RV64.
 include::images/bytefield/spmpaddr-rv64.adoc[]
 
-The layout within each SPMP configuration register is shown in <<spmpcfg>>. These registers are WARL.
+The SPMP configuration register is 16-bit, with its lower 8 bits aliasing the 8 bits of the corresponding PMP configuration register field.
+The layout within each `spmpcfg[i]` is shown in <<spmpcfg>>.
 The rules and encodings for permission are explained in <<encoding>>.
 
 . The R/W/X bits control read, write, and instruction execution permissions.
@@ -93,7 +94,12 @@ The rules and encodings for permission are explained in <<encoding>>.
 
 . Bits 5 and 6 are used for memory types if `Smpmpmt` is implemented, else reserved (please refer to the specification of `Smpmpmt` for more details).
 
-. The L bit marks an entry as locked, i.e., writes to the configuration register and associated address registers via *S-mode CSRs* are ignored. It can only be reset via *M-mode CSRs* (see <<m_mode_indirect_access>>).
+. The L bit marks an entry as locked. 
+Setting the L bit locks the SPMP entry even when the A field is set to OFF. 
+Writes to locked `spmpcfg[i]` and `spmpaddr[i]` will succeed only if the effective privilege mode is M via the `miselect` CSR. 
+Writes to locked `spmpcfg[i]` and `spmpaddr[i]` are ignored from both effective privilege mode (M and S) via the `siselect` CSR 
+(see <<m_mode_indirect_access>> and <<access_method>>). 
+Additionally, if `spmpcfg[i].A` of the locked entry is set to TOR, writes to `spmpaddr[i-1]` via `siselect` are ignored.
 
 . For a rule that is not `Shared-Region`, the U bit marks it as *U-mode-only* when set and *S-mode-only* when cleared (details in <<encoding>>).
 
@@ -107,19 +113,9 @@ include::images/bytefield/spmpcfg.adoc[]
 
 [NOTE]
 ====
-The `spmpcfg[i]` is 16-bit. The low 8 bits of the SPMP configuration register alias to the 8 bits of the corresponding PMP configuration register field.
-
 An implementation can hardwire the L bit to `0` if the lock functionality is not required.
 
-Setting the L bit locks the SPMP entry even when the A field is set to OFF.
-
-Writes to locked `spmpcfg[i]` and `spmpaddr[i]` will succeed only if the effective privilege mode is M via the miselect CSR.
-
-Writes to locked `spmpcfg[i]` and `spmpaddr[i]` are ignored from both effective privilege mode (M and S) via the siselect CSR.
-Additionally, if `spmpcfg[i].A` of the locked entry is set to TOR, writes to `spmpaddr[i-1]` via siselect are ignored .
-
 The L bit can be used by M-mode to contain software running in S-mode by setting and locking highest-priority SPMP entries with `spmpcfg[i].U == 1`. This can be useful to prevent privilege escalation attacks that would reprogram SPMP entries used to limit S-mode accesses.
-
 Although this could arguably be achieved by using PMP/ePMP entries, the resulting configuration would not be equivalent as they do not differentiate between S and U modes. Furthermore, in cases resource sharing is statically defined (i.e., `mpmpdeleg.pmpnum` is hardwired - see <<PMP_Entry_Sharing>>) there may be insufficient PMP/ePMP entries available to implement the desired isolation.
 ====
 
