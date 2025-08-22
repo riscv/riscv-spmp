@@ -141,7 +141,7 @@ SPMP has three kinds of rules: *S-mode-only*, *U-mode-only* and *Shared-Region* 
 +
 . A *Shared-Region* rule is *enforced* on both Supervisor and User modes, with the restriction that read and write permissions are mutually exclusive in User mode.
 +
-. When `spmpcfg.SHARED == 1`, the SUM bit is ignored when the *U bit must be 1*. The combination `SHARED=1, U=0` is reserved for future standard use.
+. When `spmpcfg.SHARED == 1`, the SUM bit is ignored and *the U bit must be 1*. The combination `SHARED=1, U=0` is reserved for future standard use.
 +
 . The R, W, and X fields form a collective WARL field.
 +
