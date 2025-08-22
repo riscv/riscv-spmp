@@ -228,7 +228,9 @@ The execution environment should configure SPMP entry(s) to grant the most permi
 === Access Method of PMP_Entry CSRs
 
 *Indirect CSR access*: `PMP_Entry` CSRs can be accessed indirectly from M-mode.
-Each combination of `miselect` and `mireg` represents an access to the corresponding `PMP_Entry` CSR.
+Each `miselect` represents an access to the corresponding M-level PMP entry CSRs.
+The `mireg` accesses `spmpaddr`, and the `mireg2` accesses `spmpcfg`.
+`mireg3`, `mireg4`, `mireg5`, and `mireg6` are read-only 0.
 
 There is no ordering guarantee between writes to different `PMP_Entry` CSRs via indirect access.
 Executing an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0` orders all following implicit and explicit accesses with respect to all preceding writes to `PMP_Entry` CSRs.
@@ -259,7 +261,10 @@ Writes to such SPMP entries will be ignored.
 *Indirect CSR access*: The S-level PMP entry CSRs are accessed indirectly.
 This indirect CSR access avoids the potential cost in pipeline flushes due to the `switch` statement or series of `if` statements that would otherwise be required.
 
-Each combination of `siselect` and `sireg` represents an access to the corresponding S-level PMP entry CSR.
+Each `siselect` represents an access to the corresponding S-level PMP entry CSRs.
+The `sireg` accesses `spmpaddr`, and the `sireg2` accesses `spmpcfg`.
+`sireg3`, `sireg4`, `sireg5`, and `sireg6` are read-only 0.
+
 // There is no ordering guarantee between writes to different S-level PMP entry CSRs.
 // Executing an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0` orders all following implicit and explicit accesses with respect to all preceding writes to S-level PMP entry CSRs.
 
