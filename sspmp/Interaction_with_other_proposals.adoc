@@ -7,5 +7,5 @@ This section discusses how SPMP interacts with other proposals.
 
 *Hypervisor extension*: SPMP support for virtualization is the subject of a future extension.
 
-*Smstateen extension*: SPMP adds readable and writable supervisor states, which can be abused as a covert channel if the OS/hypervisor is not aware of SPMP (thus the states won't be context-switched).
-The `Sspmp` occupies *bit 53* in the `mstateen0` register. and the `Sspmpsw` occupies *bit 52* in the `mstateen0` register of `Smstateen` extension.
+// *Smstateen extension*: SPMP adds readable and writable supervisor states, which can be abused as a covert channel if the OS/hypervisor is not aware of SPMP (thus the states won't be context-switched).
+// The `Sspmp` occupies *bit 53* in the `mstateen0` register. and the `Sspmpsw` occupies *bit 52* in the `mstateen0` register of `Smstateen` extension.

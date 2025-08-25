@@ -1,5 +1,5 @@
 [[Sspmpsw_extension]]
-== Extension for Optimizing Context Switching
+== "Sspmpsw" Extension for Optimizing Context Switching of SPMP Entries
 
 Context switching with SPMP requires updating up to 64 address and 8 configuration registers (RV64).
 This chapter introduces the *`Sspmpsw`*, an optional extension for optimizing the context switching performance of the SPMP.

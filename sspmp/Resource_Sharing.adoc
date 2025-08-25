@@ -1,9 +1,9 @@
 [[m-mode-modification]]
-== M-level ISA Extension
+== "Smpmpdeleg" Extension for Sharing Hardware Resources between PMP and SPMP
 
-Given that the PMP and SPMP registers have a similar layout of address/config registers and the same address matching logic,
-reusing registers and comparators between PMP and SPMP may be beneficial (in some cases) to save hardware resources.
+Given that the PMP and SPMP registers have a similar layout of address/config registers and the same address matching logic, reusing registers and comparators between PMP and SPMP is beneficial to save hardware resources.
 This chapter presents the `Smpmpdeleg` extension, a resource sharing mechanism enabling dynamic reallocation of hardware resources between PMP and SPMP.
+This extension is mandatory.
 
 [[PMP_Entry_Sharing]]
 === Resource Sharing between PMP and SPMP
@@ -24,7 +24,7 @@ The 32-bit `mpmpdeleg` CSRs shown in <<mpmpdeleg_format_32>> and <<mpmpdeleg_for
 . M-mode could set `pmpnum=0` to delegate all `PMP_Entry` entities to SPMP.
 . For implementations that do not hardwire the `pmpnum`, the reset value of `pmpnum` is the number of actually implemented PMP_Entries.
 // . The `pmpnum` is locked when `mseccfg.MML` is set. (Please refer to the `Smepmp` extension specification for details on `mseccfg.MML`.)
-. If the SPMP entry with lowest CSR number is configured with TOR address-matching mode (i.e., `spmp[0]cfg.A == TOR`), zero is used for the lower bound.
+// . If the SPMP entry with lowest CSR number is configured with TOR address-matching mode (i.e., `spmp[0]cfg.A == TOR`), zero is used for the lower bound.
 
 
 
