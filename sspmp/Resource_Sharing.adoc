@@ -62,6 +62,6 @@ Software that uses SPMP should start with `SPMP[pmpnum]`.
 
 . M-mode software can re-configure the allocation of entries for PMP vs. SPMP by modifying the `mpmpdeleg` CSR.
 +
-. If a single PMP entry is locked, `pmpnum` is locked from modification.
-// . The behavior that attempts to modify `mpmpdeleg`, which delegates a locked PMP entry to an SPMP entry, is *UNDEFINED*.
+. The `pmpnum` must be set to a value not less than the index of any *locked* PMP entry.
+For example, if `PMP[7]` is locked, `pmpnum` must be no less than 8.
 
