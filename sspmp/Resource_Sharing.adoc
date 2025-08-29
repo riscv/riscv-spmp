@@ -12,7 +12,7 @@ The `Smpmpdeleg` extension enables delegation of PMP entries for S-level use.
 These delegated entries are referred to as S-level PMP (SPMP) entries.
 
 A 32-bit M-mode CSR called `mpmpdeleg` is introduced to control the sharing of PMP entries between PMP and SPMP.
-The layout of `mpmpdeleg` is shown in <<mpmpdeleg_format_32>> and <<mpmpdeleg_format_64>>:
+The layout of `mpmpdeleg` is shown in <<mpmpdeleg_format_rv64>>:
 
 . The `pmpnum` field is a WARL field specifying the index of the lowest PMP entry delegated to S-level. 
 All PMP entries with an index greater than or equal to `pmpnum` are delegated as SPMP entries.
