@@ -6,10 +6,11 @@ operating system (OS) executing in supervisor mode, two primary usage models
 arise, depending on whether the available SPMP entries can simultaneously
 accommodate all required memory ranges for both the user tasks and the OS:
 
-- *Static Configuration*: all SPMP entries are programmed during system
+- *Static Configuration*: All SPMP entries are programmed during system
 initialization. This model assumes that the number of available entries is
 sufficient to cover the complete set of memory regions assigned to user tasks
-and the OS without further modification. 
+and the OS without further modification. The static configuration can only be 
+employed when the `Sspmpsw` extension is also implemented.
 
 - *Dynamic Configuration*: SPMP entries are reprogrammed on each context switch.
 This model is employed when the number of available SPMP entries is insufficient
@@ -31,17 +32,14 @@ The OS begins by allocating SPMP entries and populating the `spmpaddr[i]` and
 `spmpcfg[i]` CSRs with the appropriate address ranges and permissions for each
 user-mode task.
 
-If the OS itself is to be protected using SPMP, additional
-entries must be allocated and configured with the OS memory ranges, with the `U`
-bit (User bit) cleared in `spmpcfg[i]`.  After initializing the entries, the
-OS must also set the corresponding bits in the `sspmpswitch` register to activate these entries for itself.
+The OS should allocate and configure SPMP entries for its own memory ranges, with the `spmpcfg[i].U` (the User bit) cleared to protect itself.
+After initializing the entries, the OS must also set the corresponding bits in the `sspmpswitch` register to activate these entries for itself.
 
 Prior to launching the first user task, the OS sets the bits in `sspmpswitch`
 corresponding to the SPMP entries assigned to that task. During a context
 switch, the OS clears the current task's entry bits and sets those of the newly
 scheduled task using the `CSRRC` and `CSRRS` instructions, respectively. On RV32
-systems, both `sspmpswitch` and `sspmpswitchh` must be managed as a continuous
-pair.
+systems, `sspmpswitch` and `sspmpswitchh` must be written continuously to prevent incomplete protection.
 
 === Dynamic Reconfiguration
 
@@ -55,9 +53,11 @@ and the entries for the currently executing user-mode task.
 The following sequence is recommended for dynamic reconfiguration:
 
 1. *Disable Entries for the Outgoing Task*.
-Use the `CSRRC` instruction to clear the `sspmpswitch` bits corresponding to the
-SPMP entries of the outgoing task. A bitmask representing active entries
+A bitmask representing active entries
 (typically stored in the task's control block) should be passed as an argument. 
+If the `Sspmpsw` extension is implemented, the OS should use the `CSRRC` instruction 
+to clear the `sspmpswitch` bits associated with the outgoing task's SPMP entries.
+Otherwise, the OS should clear the `spmpcfg[i].A` field associated with the outgoing task's SPMP entries. 
 
 2. *Update SPMP Address Registers*.
 Write the `spmpaddr[i]` CSRs with the address ranges corresponding to the
@@ -71,8 +71,9 @@ For each corresponding `spmpcfg[i]` field:
 - Set the desired configuration using the `CSRRS` instruction. 
 
 4. *Enable Entries for the Incoming Task*.
-Use the `CSRRS` instruction to write to `sspmpswitch`, passing a bitmask that
-enables the SPMP entries allocated to the incoming task.
+Pass a bitmask to enable the SPMP entries allocated to the incoming task.
+If the `Sspmpsw` extension is implemented, the OS should use the `CSRRS` instruction to write to `sspmpswitch`.
+Otherwise, the OS should set the `spmpcfg[i].A` field corresponding to the SPMP entries of the incoming task. 
 
 [NOTE]
 ====
@@ -116,7 +117,7 @@ Given these risks, the following configuration model is recommended:
 
 - Conceptually, view SPMP entries as organized into pairs: (0/1), (2/3), ...,
 (62/63). Only the odd-indexed entries are enabled via the corresponding bits in
-`sspmpswitch`, as each odd entry finalizes the definition of a region;
+`sspmpswitch` (if the `Sspmpsw` extension is implemented), as each odd entry finalizes the definition of a region;
 
 - Allocate and populate SPMP entries in descending index order (i.e., from lower
 priority to higher priority), starting from the highest index downward. This
