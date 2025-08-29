@@ -215,20 +215,21 @@ The execution environment should configure SPMP entry(s) to grant the most permi
 
 
 [[m_mode_indirect_access]]
-=== Access Methods of PMP_Entry CSRs for M-mode
-Delegated `PMP_Entry` CSRs are only accessible indirectly, while non-delegated `PMP_Entry` CSRs are only accessible directly.
+=== The Access Methods for SPMP CSRs in M-mode
+SPMP CSRs are only accessible indirectly.
+This indirect CSR access avoids the potential cost in pipeline flushes due to the `switch` statement or series of `if` statements that would otherwise be required.
 
-Each `miselect` represents an access to the corresponding M-level PMP entry CSRs.
+Each `miselect` represents an access to the corresponding SPMP CSRs.
 The `mireg` accesses `spmpaddr`, and the `mireg2` accesses `spmpcfg`.
 `mireg3`, `mireg4`, `mireg5`, and `mireg6` are read-only 0.
 
-There is no ordering guarantee between writes to different `PMP_Entry` CSRs via indirect access.
-Executing an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0` orders all following implicit and explicit accesses with respect to all preceding writes to `PMP_Entry` CSRs.
+There is no ordering guarantee between writes to different SPMP CSRs via indirect access.
+Executing an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0` orders all following implicit and explicit accesses with respect to all preceding writes to SPMP CSRs.
 
 The `spmpcfg[i].L` bit can only be reset when accessing in M-mode via `miselect`.
 
-The `miselect` has the same view of `siselect`.
-For example, given an implementation with 64 PMP_Entries, where 48 entries are delegated to S-level.
+The `miselect` has the same view of `siselect` (see <<access_method>>).
+For example, given an implementation with 64 PMP entries, where 48 entries are delegated to S-level.
 S-mode can access `SPMP[16..63]` via `siselect#16..63`.
 M-mode can access `SPMP[16..63]` via `siselect#16..63` or `miselect#16..63`.
 In such a case, both privileged mode attempts to access `SPMP[i]`, where `i < mpmpdeleg.pmpnum`, will read zero. 
@@ -247,22 +248,16 @@ Writes to such SPMP entries will be ignored.
 
 
 [[access_method]]
-=== Access Method of S-level PMP entry CSRs for S-mode
-The S-level PMP entry CSRs are only accessible indirectly.
-This indirect CSR access avoids the potential cost in pipeline flushes due to the `switch` statement or series of `if` statements that would otherwise be required.
-
-Each `siselect` represents an access to the corresponding S-level PMP entry CSRs.
+=== The Access Method for SPMP CSRs in S-mode
+Each `siselect` represents an access to the corresponding SPMP CSRs.
 The `sireg` accesses `spmpaddr`, and the `sireg2` accesses `spmpcfg`.
 `sireg3`, `sireg4`, `sireg5`, and `sireg6` are read-only 0.
-
-// There is no ordering guarantee between writes to different S-level PMP entry CSRs.
-// Executing an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0` orders all following implicit and explicit accesses with respect to all preceding writes to S-level PMP entry CSRs.
 
 S-mode can set `spmpcfg[i].L` to lock an SPMP entry.
 When `spmpcfg[i].L` is set, SPMP writes via `siselect` are ignored, regardless of the privilege mode.
 Only M-mode access via `miselect` can reset `spmpcfg[i].L` (see <<m_mode_indirect_access>>).
 
-Given an implementation with 64 PMP_Entries, where 48 entries are delegated to S-level.
+Given an implementation with 64 PMP entries, where 48 entries are delegated to S-level.
 S-mode can only access `SPMP[16..63]` via `siselect#16..63`.
 Otherwise, the reads of out-of-index SPMP entries will return zero, and writes will be ignored.
 
