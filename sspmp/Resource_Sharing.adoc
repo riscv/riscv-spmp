@@ -38,14 +38,14 @@ Both PMP and SPMP entries will be supported contiguously.
 The PMP entries begin with the lowest CSR number, while the SPMP entries begin with `pmpnum`.
 For instance, given an implementation with a total of 64 PMP entries, if `pmpnum` is set to 16 during runtime,
 `PMP entry[0]` to `PMP entry[15]` would map to `PMP[0]` to `PMP[15]`.
-The remaining entries, `PMP entry[16]` to `PMP entry[63]`, would be mapped as `SPMP[16]` to `SPMP[63]`.
-A read of an out-of-index PMP entry (e.g., `PMP[16]` or `SPMP[15]`) will return 0, and a write to such a PMP entry will be ignored.
+The remaining entries, `PMP entry[16]` to `PMP entry[63]`, would be mapped as `SPMP[0]` to `SPMP[47]`.
+A read of an out-of-index PMP entry (e.g., `PMP[16]` or `SPMP[48]`) will return 0, and a write to such a PMP entry will be ignored.
 
 
-[NOTE]
-====
-Software that uses SPMP should start with `SPMP[pmpnum]`.
-====
+// [NOTE]
+// ====
+// Software that uses SPMP should start with `SPMP[0]`.
+// ====
 
 *Re-configuration:*
 
