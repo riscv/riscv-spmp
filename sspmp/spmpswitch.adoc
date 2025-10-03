@@ -9,7 +9,7 @@ This chapter introduces the *`Sspmpsw`*, an optional extension for optimizing th
 
 Each bit of `sspmpswitch` controls the activation of its corresponding SPMP entry. An entry is active only when both its `sspmpswitch[i]` bit and `spmpcfg[i].A` field are set, i.e., `sspmpswitch[i] & spmpcfg[i].A!=0`.
 
-If an entry `i` is locked (i.e., `spmpcfg[i].L == 1`), then `sspmpswitch[i]` is *read-only* using *S-mode CSRs*.
+If an entry `i` is locked (i.e., `spmpcfg[i].L == 1`), then `sspmpswitch[i]` is *read-only* to *S-mode* whereas the execution environment is not restricted.
 
 Please refer to <<guidelines>> for how software can use the optimization to reduce context switch overhead.
 

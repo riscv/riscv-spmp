@@ -145,10 +145,11 @@ and `sspmpswitchh` must be updated in coordination.
 
 To prevent asynchronous S-mode interrupts during reconfiguration, the
 supervisor must clear the `SIE` (Supervisor Interrupt Enable) bit in the
-`sstatus` CSR. Furthermore, synchronisation mechanisms (e.g., mutexes or
-spinlocks) must be employed to serialise access to SPMP CSRs in multi-threaded
-or multi-core systems, ensuring that concurrent modifications do not result in
-conflicting or corrupted configurations.
+`sstatus` CSR. 
+// Furthermore, synchronisation mechanisms (e.g., mutexes or
+// spinlocks) must be employed to serialise access to SPMP CSRs in multi-threaded
+// or multi-core systems, ensuring that concurrent modifications do not result in
+// conflicting or corrupted configurations.
 
 By enforcing non-preemption and proper synchronisation, software ensures that
 SPMP protections remain deterministic, secure, and verifiable across context
