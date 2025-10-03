@@ -1,24 +1,27 @@
 [[m-mode-modification]]
 == "Smpmpdeleg" Extension for Sharing Hardware Resources between PMP and SPMP
 
-Given that the PMP and SPMP registers have a similar layout of address/config registers and the same address matching logic, reusing registers and comparators between PMP and SPMP is beneficial to save hardware resources.
-This chapter presents the `Smpmpdeleg` extension, a resource sharing mechanism enabling dynamic reallocation of hardware resources between PMP and SPMP.
-This extension is mandatory.
+The similar architecture of PMP and SPMP registers, including their shared address-matching logic, makes hardware reuse a practical approach for resource conservation.
+This chapter introduces the `Smpmpdeleg` extension, a mechanism that allows hardware resources to be dynamically allocated between PMP and SPMP.
+
+This extension is mandatory for implementations that support Sspmp (<<S-level_Physical_Memory_Protection>>) in conjunction with M-mode (i.e., `Sm1p13`).
+To streamline the specification and reduce optional features, the `Smpmpdeleg` extension mandates a total of 64 PMP entries.
+However, an implementation retains the flexibility to provide fewer physical entries; any unimplemented entries behave as read-only zero.
+
+
 
 [[PMP_Entry_Sharing]]
 === Resource Sharing between PMP and SPMP
 
-The `Smpmpdeleg` extension enables delegation of PMP entries for S-level use.
-These delegated entries are referred to as S-level PMP (SPMP) entries.
+The `Smpmpdeleg` extension facilitates the delegation of PMP entries for use by S-level, thereby creating S-level PMP (SPMP) entries.
+This delegation is managed by an MXLEN-bit M-mode CSR named `mpmpdeleg`, whose layout is detailed in <<mpmpdeleg_format_rv64>>.
 
-A 32-bit M-mode CSR called `mpmpdeleg` is introduced to control the sharing of PMP entries between PMP and SPMP.
-The layout of `mpmpdeleg` is shown in <<mpmpdeleg_format_rv64>>:
-
-. The `pmpnum` field is a WARL field specifying the index of the lowest PMP entry delegated to S-level. 
-All PMP entries with an index greater than or equal to `pmpnum` are delegated as SPMP entries.
-. If `pmpnum` is written with a value greater than the number of implemented PMP entries, the field will read back as the number of implemented PMP entries.
-. When `pmpnum` is set to zero, all PMP entries are delegated; when it is set to the number of implemented PMP entries, no entries are delegated.
-. Unless `pmpnum` is hardwired, its reset value equals the number of implemented PMP entries.
+. A key component of this CSR is the `pmpnum` WARL field, which defines the starting index for delegation.
+All PMP entries with an index equal to or greater than `pmpnum` are delegated as SPMP entries.
+. If a write to `pmpnum` specifies a value exceeding the number of physically implemented PMP entries, the field subsequently reads back the total count of implemented entries.
+. Setting `pmpnum` to zero delegates all PMP entries to SPMP, while setting it to the total number of entries delegates none.
+. By default, unless hardwired, `pmpnum` resets to the total number of implemented PMP entries.
+. If no entries are delegated to SPMP, the `Sspmp` extension is effectively disabled, and any attempt to access SPMP-related registers results in an illegal instruction exception.
 
 
 [[mpmpdeleg_format_rv64]]
@@ -29,28 +32,52 @@ include::images/bytefield/mpmpdeleg_format_rv64.adoc[]
 
 [NOTE]
 ====
-The `mpmpdeleg.pmpnum` is WARL, and allows an implementation to hardwire the PMP/SPMP split if desired.
+The `mpmpdeleg.pmpnum` field is a WARL field, which allows an implementation to hardwire the partition between PMP and SPMP.
 ====
 
 *Addressing:*
 
-Both PMP and SPMP entries will be supported contiguously.
-The PMP entries begin with the lowest CSR number, while the SPMP entries begin with `pmpnum`.
-For instance, given an implementation with a total of 64 PMP entries, if `pmpnum` is set to 16 during runtime,
-`PMP entry[0]` to `PMP entry[15]` would map to `PMP[0]` to `PMP[15]`.
-The remaining entries, `PMP entry[16]` to `PMP entry[63]`, would be mapped as `SPMP[0]` to `SPMP[47]`.
-A read of an out-of-index PMP entry (e.g., `PMP[16]` or `SPMP[48]`) will return 0, and a write to such a PMP entry will be ignored.
+Both PMP and SPMP entries are indexed starting from zero.
+For example, in an implementation with 64 total entries where `pmpnum` is configured to 16:
+
+. PMP entries 0 through 15 acts as PMP (i.e., `PMP[0..15]`) and are accessible via standard PMP CSRs (i.e., `pmpcfg[0..3]` and `pmpaddr[0..15]` for RV32; `pmpcfg[0,2]` and `pmpaddr[0..15]` for RV64).
+. The remaining 48 entries are delegated as SPMP (i.e., `SPMP[0..47]`) and are accessed via SPMP CSRs (i.e., `spmpcfg[0..11]` and `spmpaddr[0..47]` for RV32; `spmpcfg[0,2,4,6,8,10]` and `spmpaddr[0..47]` for RV64, see <<spmp_csrs>>).
+. Accesses to out-of-range indices, such as reading `PMP[16]` or writing to `SPMP[48]` in this scenario, are handled as follows: reads return zero, and writes are ignored.
 
 
-// [NOTE]
-// ====
-// Software that uses SPMP should start with `SPMP[0]`.
-// ====
 
 *Re-configuration:*
 
-. M-mode software can re-configure the allocation of entries for PMP vs. SPMP by modifying the `mpmpdeleg` CSR.
-+
-. The `pmpnum` must be set to a value larger than the index of any *locked* PMP entry.
-For example, if `PMP[7]` is locked, `pmpnum` must be no less than 8.
+. M-mode software can dynamically adjust the allocation between PMP and SPMP by writing to the `mpmpdeleg` CSR.
+. The `pmpnum` value cannot be set to an index that is less than or equal to that of any locked PMP entry.
+For instance, if `PMP[7]` is locked, any attempt to write a value less than 8 to `pmpnum` is ignored, and the field retains its prior value.
+
+
+[[m_mode_indirect_access]]
+=== The Access Methods for SPMP CSRs in M-mode
+M-mode employs different methods to access PMP and SPMP entries.
+PMP entries are accessed directly through their dedicated CSRs (i.e., `pmpcfg` and `pmpaddr`).
+Delegated SPMP entries, however, are accessed indirectly using the `xiselect` CSR (i.e., `siselect` and `miselect`).
+
+For these indirect accesses, `miselect` selects the target SPMP entry, `mireg` accesses its `spmpaddr` register, and `mireg2` accesses its `spmpcfg` register.
+The `mireg3` through `mireg6` are read-only 0.
+
+The architecture does not guarantee ordering between consecutive indirect writes to SPMP CSRs.
+To enforce ordering, software must execute an `SFENCE.VMA` instruction with `rs1=x0 and rs2=x0`, which synchronizes subsequent memory accesses with all preceding SPMP CSR writes.
+
+The lock bit (`spmpcfg[i].L`) of an SPMP entry can only be cleared by the execution environment (M-mode in this case) through an indirect access using `miselect`.
+
+The view provided by `miselect` is identical to that of `siselect` (see <<access_method>>).
+For instance, if 48 out of 64 entries are delegated, both S-mode (via `siselect` indices 0-47) and M-mode (via `siselect` or `miselect` indices 0-47) can access `SPMP[0..47]`.
+Any access attempt by either mode to an index outside this range (i.e., `i >= 48`) results in a read of zero, and writes are ignored.
+
+
+[cols="^1,^2",stripes=even, options="header"]
+|===
+|`miselect` number| indirect CSR access of `mireg`
+|`miselect#0`|`mireg` -> `spmpaddr[0]`, `mireg2` -> `spmpcfg[0]`
+|`miselect#1`|`mireg` -> `spmpaddr[1]`, `mireg2` -> `spmpcfg[1]`
+|    ...     |    ...     
+|`miselect#63`|`mireg` -> `spmpaddr[63]`, `mireg2` -> `spmpcfg[63]`
+|===
 
