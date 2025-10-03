@@ -1,7 +1,7 @@
 [[header]]
 :description: RISC-V S-level Physical Memory Protection (Sspmp)
 :company: RISC-V.org
-:revdate: 9/2025
+:revdate: 10/2025
 :revnumber: 1.0.0-rc4
 :revremark: This document is in development. Assume everything can change. See http://riscv.org/spec-state for details.
 :url-riscv: http://riscv.org
