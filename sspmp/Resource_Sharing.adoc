@@ -1,66 +1,56 @@
 [[m-mode-modification]]
-== M-level ISA Extension
+== "Smpmpdeleg" Extension for Sharing Hardware Resources between PMP and SPMP
 
-Given that the PMP and SPMP registers have a similar layout of address/config registers and the same address matching logic,
-reusing registers and comparators between PMP and SPMP may be beneficial (in some cases) to save hardware resources.
+Given that the PMP and SPMP registers have a similar layout of address/config registers and the same address matching logic, reusing registers and comparators between PMP and SPMP is beneficial to save hardware resources.
 This chapter presents the `Smpmpdeleg` extension, a resource sharing mechanism enabling dynamic reallocation of hardware resources between PMP and SPMP.
+This extension is mandatory.
 
 [[PMP_Entry_Sharing]]
 === Resource Sharing between PMP and SPMP
 
-Implementations should consider PMP/SPMP entries as a pool of entities, each of which is called a `PMP_Entry`.
-Specifically, each `PMP_Entry` consists of an address CSR, a configuration CSR, and associated microarchitecture state.
-A new M-mode CSR called `mpmpdeleg` is introduced to control the sharing of PMP_Entry entities between PMP and SPMP.
+The `Smpmpdeleg` extension enables delegation of PMP entries for S-level use.
+These delegated entries are referred to as S-level PMP (SPMP) entries.
 
-In the following description, we will refer to the PMP/SPMP entity from the hardware perspective as `PMP_Entries`, and the PMP/SPMP from the software perspective as `M-level PMP entries` and `S-level PMP entries` (Referred to as PMP and SPMP entries for short).
+A 32-bit M-mode CSR called `mpmpdeleg` is introduced to control the sharing of PMP entries between PMP and SPMP.
+The layout of `mpmpdeleg` is shown in <<mpmpdeleg_format_rv64>>:
 
+. The `pmpnum` field is a WARL field specifying the index of the lowest PMP entry delegated to S-level. 
+All PMP entries with an index greater than or equal to `pmpnum` are delegated as SPMP entries.
+. If `pmpnum` is written with a value greater than the number of implemented PMP entries, the field will read back as the number of implemented PMP entries.
+. When `pmpnum` is set to zero, all PMP entries are delegated; when it is set to the number of implemented PMP entries, no entries are delegated.
+. Unless `pmpnum` is hardwired, its reset value equals the number of implemented PMP entries.
 
-The 32-bit `mpmpdeleg` CSRs shown in <<mpmpdeleg_format_32>> and <<mpmpdeleg_format_64>> have one `pmpnum` field:
-
-. `pmpnum` is 7-bit, allowing a value of 0--64 to specify the number of `PMP_Entry` entities. With RV32, the values of `pmpnum`, can only be a multiple of 4 (the lowest 2 bits form a WARL field that is read-only 0); with RV64, it can only be a multiple of 8 (the lowest 3 bits form a WARL field that is read-only 0). This realization aligns with the idea of a shared `PMP_Entries` pool, enabling flexible assignment to M-level and S-level.
-. Any `PMP_Entry` entity with an index greater than or equal to the `pmpnum` is delegated to S-level (SPMP). The lower numbered `PMP_Entry` entities are left for M-level (PMP).
-. If M-mode sets the `pmpnum` to a value exceeding the maximum number of actually implemented PMP entries, the largest allowed value is returned.
-. M-mode could set `pmpnum=0` to delegate all `PMP_Entry` entities to SPMP.
-. For implementations that do not hardwire the `pmpnum`, the reset value of `pmpnum` is the number of actually implemented PMP_Entries.
-// . The `pmpnum` is locked when `mseccfg.MML` is set. (Please refer to the `Smepmp` extension specification for details on `mseccfg.MML`.)
-. If the SPMP entry with lowest CSR number is configured with TOR address-matching mode (i.e., `spmp[0]cfg.A == TOR`), zero is used for the lower bound.
-
-
-
-[[mpmpdeleg_format_32]]
-.mpmpdeleg CSR format, RV32.
-include::images/bytefield/mpmpdeleg_format_rv32.adoc[]
 
 [[mpmpdeleg_format_rv64]]
-.mpmpdeleg CSR format, RV64.
+.mpmpdeleg CSR format.
 include::images/bytefield/mpmpdeleg_format_rv64.adoc[]
 
 
 
 [NOTE]
 ====
-The `mpmpdeleg` CSR is WARL, and allows an implementation to hardwire the PMP/SPMP split if desired.
+The `mpmpdeleg.pmpnum` is WARL, and allows an implementation to hardwire the PMP/SPMP split if desired.
 ====
 
 *Addressing:*
 
 Both PMP and SPMP entries will be supported contiguously.
 The PMP entries begin with the lowest CSR number, while the SPMP entries begin with `pmpnum`.
-For instance, given an implementation with a total of 64 `PMP_Entry` entities, if `pmpnum` is set to 16 during runtime,
-`PMP_Entry[0]` to `PMP_Entry[15]` would map to `PMP[0]` to `PMP[15]`.
-The remaining entities, `PMP_Entry[16]` to `PMP_Entry[63]`, would be mapped as `SPMP[16]` to `SPMP[63]`.
-A read of an out-of-index PMP_Entry (e.g., `PMP[16]` or `SPMP[15]`) will return 0, and a write to such a PMP_Entry will be ignored.
+For instance, given an implementation with a total of 64 PMP entries, if `pmpnum` is set to 16 during runtime,
+`PMP entry[0]` to `PMP entry[15]` would map to `PMP[0]` to `PMP[15]`.
+The remaining entries, `PMP entry[16]` to `PMP entry[63]`, would be mapped as `SPMP[0]` to `SPMP[47]`.
+A read of an out-of-index PMP entry (e.g., `PMP[16]` or `SPMP[48]`) will return 0, and a write to such a PMP entry will be ignored.
 
 
-[NOTE]
-====
-Software that uses SPMP should start with `SPMP[pmpnum]`.
-====
+// [NOTE]
+// ====
+// Software that uses SPMP should start with `SPMP[0]`.
+// ====
 
 *Re-configuration:*
 
 . M-mode software can re-configure the allocation of entries for PMP vs. SPMP by modifying the `mpmpdeleg` CSR.
 +
-. If a single PMP entry is locked, `pmpnum` is locked from modification.
-// . The behavior that attempts to modify `mpmpdeleg`, which delegates a locked PMP entry to an SPMP entry, is *UNDEFINED*.
+. The `pmpnum` must be set to a value larger than the index of any *locked* PMP entry.
+For example, if `PMP[7]` is locked, `pmpnum` must be no less than 8.
 

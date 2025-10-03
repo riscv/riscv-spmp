@@ -4,13 +4,11 @@
 (def row-height 30)
 (def row-header-fn nil)
 (def boxes-per-row 32)
-(draw-column-headers {:height 20 :font-size 20 :labels (reverse ["0" "" "" "" "2" "" "3" "" "" "" "" "" "6" "" "7" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "31"])})
+(draw-column-headers {:height 20 :font-size 20 :labels (reverse ["0" "" "" "" "" "" "" "" "" "" "" "" "6" "" "7" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "31"])})
 
 (draw-box (text "Reserved (WPRI)" {:font-size 22}) {:span 18})
-(draw-box (text "pmpnum (WARL)" {:font-size 22}) {:span 8})
-(draw-box (text "0 (WARL)" {:font-size 22}) {:span 6})
+(draw-box (text "pmpnum (WARL)" {:font-size 22}) {:span 14})
 
 (draw-box (text "25" {:font-size 20}) {:span 18 :borders {}})
-(draw-box (text "4" {:font-size 20}) {:span 8 :borders {}})
-(draw-box (text "3" {:font-size 20}) {:span 6 :borders {}})
+(draw-box (text "7" {:font-size 20}) {:span 14 :borders {}})
 ----
