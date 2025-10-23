@@ -1,53 +1,139 @@
-[[Specification]]
-== Specification
+[[Hypervisor_Extended_SPMP]]
+== "Sshspmp" Extension for Hypervisor-Extended SPMP
+
+=== Extension Dependencies
+
+. The `Sshspmp`  is dependent on the baseline SPMP extension, `Sspmp`.
++
+. The `Sshspmp` extension is dependent on `Ss1p13` and the Hypervisor Extension, with the following requirement relaxations:
+
+.. The RISC-V Privileged Architecture specification states that for the Hypervisor Extension to be implemented “standard page-based address translation must be supported, either Sv32 for RV32, or a minimum of Sv39 for RV64.”. When `Sshspmp` is implemented, this requirement is relaxed:
+    * The only mandatory translation mode in `satp` is `Bare`.
+
+.. When `Sshspmp` is implemented, second-stage translation support is not required to implement the Hypervisor Extension:
+    * The only mandatory mode in `hgatp` is `Bare`.
 
 === Hypervisor-Extended SPMP (hSPMP)
 
-The Shpmp extension enhances the behavior of the original SPMP so that when the Hypervisor extension is present the behavior of the SPMP is enhanced to an hypervisor-extended SPMP (hSPMP). When V=0, the hSPMP acts as the baseline SPMP. When V=1 and hgatp.mode=Bare the hSPMP checks all guest memory accesses, i.e., all accesses  from VS or VU modes. The enconding permissions remain the same as for the baseline SPMP for when spmpcfg.S is clear, but enforcing the rule over VS/VU modes instead of U mode.
-// Table ?? summarizes the rule permission check encodings (refer to the baseline SPMP specification for more details).
+The `Shspmp` extension augments the baseline SPMP functionality to support virtualization into the hypervisor-extended SPMP (hSPMP). When V = 0, hSPMP behaves identically to the baseline SPMP. When V = 1 and `hgatp.MODE = Bare`, hSPMP enforces access checks on all memory accesses from VS and VU-modes, effectively applying SPMP protections to guest execution contexts. The permission encodings remain consistent with those of the baseline SPMP when `spmpcfg.U = 1`, but are applied to VS/VU rather than U-mode accesses. Additionally, the Hypervisor Virtual Machine Load and Store instructions (HLV, HLVX, HSV), when executed from M-mode, HS-mode, or U-mode (when `hstatus.HU = 1`), are also subject to hSPMP checks under the V = 1 condition.
 
-Note that the Hypervisor Virtual Machine Load and Store instructions (HLV/HLVX/HSV) executed from M, HS or HU (when hstatus.HU is set) modes are also subject to the same hSPMP checks as when V=1.
+When a VS/VU access is denied by hSPMP, an exception is raised. The type of exception depends on the nature of the access attempt, i.e., whether it is a load, store/AMO, or instruction fetch. The hSPMP reuses the guest page fault exception codes (20, 21, and 23, for instruction, load, and store/AMO accesses, respectively) defined by the Hypervisor extension. 
 
-//image::SPMP_Encoding_Table.png[title="hSPMP Encoding Table with spmpcfg.S=0 when V=1"]
+[NOTE]
+====
+Since, when V = 1, hSPMP is only active when `hgatp.MODE = Bare`, hSPMP protection and G-stage translation are mutually exclusive. Consequently, when hSPMP is active, paged virtual memory translations are disabled, and guest page fault exception codes can be repurposed to indicate guest hSPMP access violations.
+====
 
-.hSPMP Encoding Table with spmpcfg.S=0 when V=1
-[cols="^1,^1",stripes=even,options="header"]
+== "Sshspmpsw" Extension for Optimizing Context Switching of hSPMP Entries
+
+=== Extension Dependencies
+
+. The `Sshspmpsw` is dependent on `Sshspmp` and `Sspmpsw`.
+
+=== Optimization for Context Switching of hSPMP Entries
+
+The `Sshspmpsw` introduces additional CSRs:
+
+* In RV64: one 64-bit WARL CSR called `hspmpswitch` is added.
+* In RV32: in addition to `hspmpswitch`, a 32-bit WARL CSR called `hspmpswitchh` is added, which is an alias of the upper half of `hspmpswitch`.
+
+When V = 1, these registers replace the function of `spmpswitch`. Specifically, when V = 1, an hSPMP entry is considered active only if both its `spmpcfg[i].A` is set and the corresponding bit in `hspmpswitch` is set. When V = 0, the `hspmpswitch` register has no effect, and the baseline SPMP behavior applies as defined by `spmpswitch` alone.
+
+When an entry `i` is locked, as indicated by `spmpcfg[i].L == 1`, bit `i` in `hspmpswitch` becomes read-only.
+
+[NOTE]
+====
+The rationale for providing a separate `hspmpswitch` register, rather than reusing `spmpswitch`, is that HS/U and VS/VU contexts conceptually occupy distinct address spaces, not merely different permission domains. This mirrors the baseline Hypervisor extension for page-based translation, where HS/U accesses use the page tables pointed to by `satp`, while VS/VU accesses are translated through a separate set of page tables defined by `hgatp`.
+Similarly, `spmpswitch` governs SPMP entries for the hypervisor’s own address space, while `hspmpswitch` controls the guest address space enforced by hSPMP. This separation allows the hypervisor to manage its own and guest memory protection configurations independently.
+====
+
+== "Ssvspmp" Extension for Virtual SPMP
+
+=== Extension Dependencies
+
+. The `Ssvspmp` is dependent on `Ss1p13` and the Hypervisor Extension, with the following requirement relaxations:
+    * The only mandatory mode in `vsatp` is `Bare`.
+
+. The `Ssvspmp` is dependent on the Hypervisor-Extended SPMP extension, `Sshspmp`.
+
+=== Virtual SPMP (vSPMP)
+
+The `Ssvspmp` extension introduces a new memory protection layer called Virtual SPMP (vSPMP). The vSPMP behaves analogously to the baseline SPMP but is under the control of VS-mode and applies to memory accesses originating from VS and VU modes. The vSPMP is active only when V = 1. Conceptually, this extension establishes a two-stage SPMP hierarchy, preceding any checks by PMP or ePMP (see <<hpmp-arch>>). From a logical perspective, when both `vsatp.MODE` and `hgatp.MODE` are set to Bare, memory accesses initiated by guest contexts (VS/VU) are subject to the following enforcement sequence: 
+
+. vSPMP check: If the access is permitted by vSPMP, then 
++ 
+. hSPMP check: The access must also be permitted by hSPMP. 
+
+If the vSPMP check or both the vSPMP and hSPMP checks deny a VS/VU access, a standard SPMP page-fault directed at VS-mode is triggered using page fault exception codes 12 (instruction), 13 (load), or 15 (store/AMO). If only the hSPMP denies a VS/VU access, a fault directed at HS-mode is raised using guest page fault exception codes as defined by `Sshspmp`. Implementations may perform vSPMP and hSPMP checks in parallel, provided the overall enforcement behavior matches the sequential logic described above.
+
+[[hpmp-arch]]
+image::hspmp.png[title="Dual-Stage SPMP",align="center"]
+
+When `vsatp.MODE` is set to `Bare` but `hgatp.MODE` is not, the vSPMP check is logically followed by G-stage address translation. Implementations may perform the vSPMP check and G-stage translation in parallel.
+
+When `vsatp.MODE` is not set to `Bare`, but `hgatp.MODE` is, the hSPMP check logically occurs after the VS-stage address translation. In this scenario, the Guest Physical Address (GPA) produced by the VS-stage translation must be used as the input to the hSPMP check. Consequently, parallel evaluation of VS-stage translation and hSPMP enforcement is not possible unless speculative techniques are employed.
+
+The vSPMP is configured through a set of virtual supervisor indirect-access registers, which are architectural replicas of the standard SPMP registers. These include `vspmpaddr0`–`vspmpaddr63`, `vspmpcfg0`–`vspmpcfg63`. See <<vspmp_access_method>> for details on how these registers are accessed.
+
+Furthermore, if `Sspmpsw` is implemented, the vSPMP must implement additional virtual supervisor CSRs which control the active vSPMP entries, analogously to `sspmpswitch` for the SPMP:
+
+* In RV64: one 64-bit WARL CSR called `vspmpswitch` is added.
+* In RV32: in addition to `vspmpswitch`, a 32-bit WARL CSR called `vspmpswitchh` is added, which is an alias of the upper half of `vspmpswitch`.
+
+[[vspmp_access_method]]
+=== Access Method for vSPMP registers
+
+Consistent with the behavior defined in the Hypervisor and Indirect CSR Access extensions, vSPMP registers can be accessed from M and HS-modes via the `vsiselect`/`vsiregX` and accesses to the original SPMP registers from VS-mode via `siselect`/`siregX` CSRs are transparently redirected to the corresponding virtual supervisor vSPMP registers. 
+
+Each `vsiselect` represents an access to the corresponding SPMP virtual supervisor CSRs. The `vsireg` accesses `vspmpaddr`, and the `sireg2` accesses `vspmpcfg`.`vsireg3`, `vsireg4`, `vsireg5`, and `vsireg6` are read-only 0.
+
+[cols="^1,^2",stripes=even, options="header"]
 |===
-|spmpcfg|VS/VU-mode
-|R - -|Enforce
-|R - X|Enforce
-|- - X|Enforce
-|- - -|Enforce
-|R W -|Enforce
-|R W X|Enforce
-|- W X|RSVD
-|- W -|RSVD
+|`vsiselect` number| indirect CSR access of `vsireg`
+|`vsiselect#0`|`vsireg` -> `vspmpaddr[0]`, `vsireg2` -> `vspmpcfg[0]`
+|`vsiselect#1`|`vsireg` -> `vspmpaddr[1]`, `vsireg2` -> `vspmpcfg[1]`
+|    ...     |    ...
+|`vsiselect#63`|`vsireg` -> `vspmpaddr[63]`, `vsireg2` -> `vspmpcfg[63]`
 |===
 
-When a guest access is denied by the hSPMP an exception is generated. Depending on the type of access (i.e., load, store/AMO, or instruction fetch) a different kind of fault is generated. The hSPMP reuses exception codes from the Hypervisor extension for guest page faults since SPMP protection and paged virtual memory are mutually exclusive and cannot be active at the same time as the SPMP is only enabled when satp.mode == Bare. Essentially this extension renames these exception codes as detailed in Table ?? seen next.
+Both M and HS-mode accesses via `vsireg2` CSRs, and VS-mode accesses via `sireg2` CSRs to the vSPMP `vspmpcfg` resgisters, can set `vspmpcfg[i].L` to lock a vSPMP entry. When `vspmpcfg[i].L` is set, writes to that entry are ignored. Only M and HS-mode writes via `vsireg2` can reset `vspmpcfg[i].L`.
 
-[cols="^1,^1,^1", stripes=even, options="header"]
-|===
-|Interrupt|Exception Code|Description
-|0|20|Instruction guest-access/page fault
-|0|21|Load guest-access/page fault
-|0|23|Store/AMO guest-access/page fault
-|===
+== "Sshspmpdeleg" Extension for Sharing Hardware Resources between hSPMP and vSPMP
 
-The hSPMP adds an extra hypervisor WARL CSR pair to the SPMP, hspmpswitch0-1. When V=1 these CSRs take the role of the original spmpswitch0-1. This means that, when V=1, hSPMP entry is active only when both corresponding bits in hspmpswitch and spmp[i]cfg,A are set. When V=0, these registers have no effect.
+=== Extension Dependencies
 
-=== Guest/Virtual SPMP (vSPMP)
+. The `Sshspmpdeleg` is dependent on `Ssvpmp` and `Smpmpdeleg`.
 
-This extension introduces a new PMP, the vSPMP, behaving exactly as the original SPMP, but under the control of VS-mode and checking accesses from VS and VU modes, therefore only active when V=1. Essentially, this extension introduces a two-stage SPMP before the PMP/ePMP (Figure ??). From a logical point of view, when both vsatp.mode and hgatp.mode are set to Bare, guest accesses (i.e., originating from VS/VU) are first checked by the the vSPMP, and if allowed, then checked by the hSPMP. Meaning that if the access is denied both by the vSPMP and the hSPMP, an SPMP fault is generated (i.e., fault with exception code 12, 13 or 15). The implementation can perform vSPMP checks in parallel with hSPMP cheks.
+=== Resource Sharing between hSPMP and vSPMP
 
-image::hpmp.png[title="Dual-Stage SPMP",align="center"]
+With this extension the hypervisor can delegate entries from hSPMP to vSPMP. For this, it introduces a new WARL `hspmpdeleg` CSR with the same format and functionality of `mpmpdeleg`, but for delegating hSPMP entries to vSPMP.
+Any PMP entry with an index greater than or equal to `mpmpdeleg.pmpnum` + `hspmpdeleg.pmpnum` is delegated to the vSPMP. For example, if the number of implemented PMP entries is 48, `mpmpdeleg.pmpnum` is set o 8, and `hspmpdeleg.pmpnum` is set to 16, PMP entries 24 to 47 are delegated to the vSPMP.
 
-For the purposes of full aligment with the baseline Hypervisor specification, and from a logical point of view, addresses used before vSPMP checks are considered to be guest virtual addresses (GVA), and those checked by the hSPMP are guest physical addresses (GPA).
+If `hspmpdeleg.pmpnum` is written with a value such that `mpmpdeleg.pmpnum` + `hspmpdeleg.pmpnum` is equal to or greater than the number of implemented PMP entries, the field will read back as the number of remaining hSPMP entries. For example, if the number of implemented PMP entries is 32, `mpmpdeleg.pmpnum` is set to 16, and `hspmpdeleg.pmpnum` is written a value of 32, the field will read back as 16.
 
-If vsatp.mode is set to Bare but hgatp.mode is not, the vSPMP check is logically followed by the usual G-stage translation. Implementations can implement them in parallel.
+`hspmpdeleg.pmpnum` must be set to a value larger than the index of any locked hSPMP entry. For example, if `hSPMP[7]` is locked, `hspmpdeleg.pmpnum` must be no less than 8.
 
-If vsatp.mode is not set to bare, but hgapt.mode is, the hSPMP happens logically after the VS-stage transaction. Implementations must use the guest physical address (GPA), resulting from the VS-stage translation, to perform the hSPMP check, meaning a parallel check is not feasible unless speculation is employed.
+`hspmpdeleg.pmpnum` can be hardwired to allow an implementation to fix the hSPMP/vSPMP split only if `mpmpdeleg.pmpnum` is also hardwired.
 
-VS mode controls the vSPMP through a number of new virtual supervisors CSRs (VS CSRs), replicas of the normal SPMP supervisor CSRs. These include vspmpcfg0-3, vspmpaddr0-64 CSRS, and vspmpswitch0-1. As with the virtual supervisors CSRs in the baseline Hypervisor specification, when V=1, accesses to original SPMP CSRs, are diverted to these VS CSRs.
+This extension allows for the number of implemented PMP entries to be greater than 64 and up to a maximum of 192.
+If the number of implemented entries is greater than 64, unless hardwired, `mpmpdeleg.pmpnum` reset value is 64, and `hspmpdeleg.pmpnum` is set to the value of the remaining entries available to the hSPMP. For example, if the total number of entries is 96, `hspmpdeleg.pmpnum` reset value is 32.
 
-The number of vSPMP entries can vary by implementation, and up to 64 SPMP entries are supported in the standard.
+[NOTE]
+====
+The limit of 192 for implemented PMP entries stems from the fact that this is the maximum number of addressable entries: 64 addressable for the vSPMP, 64 for the hSPMP, plus 64 for PMP. If more PMP entries were implemented, software would have no way to address and access such entries.
+====
+
+This extension is mandatory.
+
+*Addressing:*
+
+vSPMP entries will be supported contiguously and begin with the lowest vSPMP indirect CSR number.
+For instance, given an implementation with a total of 48 PMP entries, if `mpmpdeleg.pmpnum` is set to 16, and `hspmpdeleg.pmpnum` to 16, 
+`PMP entry[32]` to `PMP entry[47]` would map to `vSPMP[0]` to `vSPMP[15]`.
+A read of an out-of-index vSPMP entry (in the previous example, starting with `vSPMP[16]`) will return 0, and a write to such a vSPMP entry will be ignored.
+
+[NOTE]
+====
+If `mpmpdeleg.pmpnum` + `hspmpdeleg.pmpnum` is configured such that more than 64 entries are delegated to vSPMP, only the lowest 64 delegated entries are addressable through the vSPMP CSRs. Any additional delegated entries are architecturally inaccessible and have no effect on memory protection.
+For example, if the number of implemented PMP entries is 128, `mpmpdeleg.pmpnum` is set to 16, and `hspmpdeleg.pmpnum` is set to 16, `PMP entry[32]` to `PMP entry[95]` would map to `vSPMP[0]` to `vSPMP[63]`, and `PMP entry[96]` to `PMP entry[127]` fall outside the vSPMP addressable range and therefore and have no effect on memory protection.
+====

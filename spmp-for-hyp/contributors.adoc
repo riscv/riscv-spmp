@@ -3,7 +3,11 @@
 The proposed specifications (non-ratified, under discussion) has been contributed to directly or indirectly by:
 
 [%hardbreaks]
-* Dong Du, Editor <dd_nirvana@sjtu.edu.cn>
-* Sandro Pinto, Editor <sandro.pinto@dei.uminho.pt>
-* Bicheng Yang
-* Jose Martins
+* Bicheng Yang, Editor <bichengyang@sjtu.edu.cn>
+* José Martins, Editor <jose@osyx.tech>
+* Dong Du
+* Sandro Pinto
+* Thomas Roecker
+* Manuel Rodriguez
+* Luís Cunha
+* Kajetan Nürnberger
