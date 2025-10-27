@@ -41,7 +41,7 @@ Both PMP and SPMP entries are indexed starting from zero.
 For example, in an implementation with 64 total entries where `pmpnum` is configured to 16:
 
 . PMP entries 0 through 15 acts as PMP (i.e., `PMP[0..15]`) and are accessible via standard PMP CSRs (i.e., `pmpcfg[0..3]` and `pmpaddr[0..15]` for RV32; `pmpcfg[0,2]` and `pmpaddr[0..15]` for RV64).
-. The remaining 48 entries are delegated as SPMP (i.e., `SPMP[0..47]`) and are accessed via SPMP CSRs (i.e., `spmpcfg[0..11]` and `spmpaddr[0..47]` for RV32; `spmpcfg[0,2,4,6,8,10]` and `spmpaddr[0..47]` for RV64, see <<spmp_csrs>>).
+. The remaining 48 entries are delegated as SPMP (i.e., `SPMP[0..47]`) and are indirectly accessed via `xiselect` (see <<m_mode_indirect_access>> and <<access_method>>).
 . Accesses to out-of-range indices, such as reading `PMP[16]` or writing to `SPMP[48]` in this scenario, are handled as follows: reads return zero, and writes are ignored.
 
 
