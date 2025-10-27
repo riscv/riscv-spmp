@@ -109,7 +109,9 @@ Both M and HS-mode accesses via `vsireg2` CSRs, and VS-mode accesses via `sireg2
 With this extension the hypervisor can delegate entries from hSPMP to vSPMP. For this, it introduces a new WARL `hspmpdeleg` CSR with the same format and functionality of `mpmpdeleg`, but for delegating hSPMP entries to vSPMP.
 Any PMP entry with an index greater than or equal to `mpmpdeleg.pmpnum` + `hspmpdeleg.pmpnum` is delegated to the vSPMP. For example, if the number of implemented PMP entries is 48, `mpmpdeleg.pmpnum` is set o 8, and `hspmpdeleg.pmpnum` is set to 16, PMP entries 24 to 47 are delegated to the vSPMP.
 
-If `hspmpdeleg.pmpnum` is written with a value such that `mpmpdeleg.pmpnum` + `hspmpdeleg.pmpnum` is equal to or greater than the number of implemented PMP entries, the field will read back as the number of remaining hSPMP entries. For example, if the number of implemented PMP entries is 32, `mpmpdeleg.pmpnum` is set to 16, and `hspmpdeleg.pmpnum` is written a value of 32, the field will read back as 16.
+If  either `mpmpdeleg.pmpnum`  or `hspmpdeleg.pmpnum` is written with a value such that `mpmpdeleg.pmpnum` + `hspmpdeleg.pmpnum` is equal
+to or greater than the number of implemented PMP entries, `hspmpdeleg.pmpnum` will read back as the number of remaining hSPMP entries. For example, if the number of implemented PMP entries is 32, `mpmpdeleg.pmpnum` is set to 16, and then `hspmpdeleg.pmpnum` is written a value of 32, the field will read back as 16. Or if initially,
+`mpmpdeleg.pmpnum` is set to 8, `hspmpdeleg.pmpnum` to 20 and then `mpmpdeleg.pmpnum` is written 16, `hspmpdeleg.pmpnum` is updated to 16. In the extreme, if `mpmpdeleg.pmpnum` is set to 32, `hspmpdeleg.pmpnum` must be updated to 0.
 
 `hspmpdeleg.pmpnum` must be set to a value larger than the index of any locked hSPMP entry. For example, if `hSPMP[7]` is locked, `hspmpdeleg.pmpnum` must be no less than 8.
 
