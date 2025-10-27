@@ -135,8 +135,6 @@ If the number of implemented entries is greater than 64, unless hardwired, `mpmp
 The limit of 192 for implemented PMP entries stems from the fact that this is the maximum number of addressable entries: 64 addressable for the vSPMP, 64 for the hSPMP, plus 64 for PMP. If more PMP entries were implemented, software would have no way to address and access such entries.
 ====
 
-This extension is mandatory.
-
 *Addressing:*
 
 vSPMP entries will be supported contiguously and begin with the lowest vSPMP indirect CSR number.
@@ -149,3 +147,5 @@ A read of an out-of-index vSPMP entry (in the previous example, starting with `v
 If `mpmpdeleg.pmpnum` + `hspmpdeleg.pmpnum` is configured such that more than 64 entries are delegated to vSPMP, only the lowest 64 delegated entries are addressable through the vSPMP CSRs. Any additional delegated entries are architecturally inaccessible and have no effect on memory protection.
 For example, if the number of implemented PMP entries is 128, `mpmpdeleg.pmpnum` is set to 16, and `hspmpdeleg.pmpnum` is set to 16, `PMP entry[32]` to `PMP entry[95]` would map to `vSPMP[0]` to `vSPMP[63]`, and `PMP entry[96]` to `PMP entry[127]` fall outside the vSPMP addressable range and therefore and have no effect on memory protection.
 ====
+
+This extension is mandatory if `Ssvspmp` is implemented.
