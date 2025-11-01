@@ -227,10 +227,6 @@ Each value of `siselect` maps to a corresponding set of SPMP CSRs.
 `sireg` is used to access the `spmpaddr` register, while `sireg2` is used for the `spmpcfg` register.
 The registers `sireg3` through `sireg6` are read-only 0.
 
-S-mode software can lock an SPMP entry by setting its `spmpcfg[i].L` bit.
-Once `spmpcfg[i].L` is set, any attempt to write to that SPMP entry via `siselect` is ignored, regardless of the privilege mode.
-The lock bit `spmpcfg[i].L` can only be cleared by an execution environment access using `miselect` (see <<m_mode_indirect_access>>).
-
 SPMP entries are indexed starting from zero.
 In a system with 48 SPMP entries, S-mode can address `SPMP[0..47]` using `siselect#0..47`.
 An access to an out-of-bounds index via `siselect` will return zero on read and be ignored on write.
