@@ -59,11 +59,11 @@ For each relevant `spmpcfg[i]` field:
 [NOTE]
 ====
 SPMP entries configured to protect the supervisor, which are identified by `spmpcfg[i].U == 0`, should be treated as resident. 
-It is highly recommended not to reprogram these entries during the context switch procedure. 
+It is highly recommended that these entries not be reprogrammed during the context switch procedure. 
 Keeping supervisor entries persistent minimizes reconfiguration overhead and guarantees the consistent enforcement of supervisor memory protection.
 ====
 
-=== Entry Configuration Recomendations
+=== Entry Configuration Recommendations
 
 Programming SPMP entries involves a trade-off between the Naturally Aligned Power-of-Two (NAPOT) and Top-of-Range (TOR) address-matching modes (see <<address_matching>>).
 
@@ -90,7 +90,7 @@ This strategy, which corresponds to an ascending order of priority, permits the 
 Adhering to this structured approach with TOR-mode entries fosters clearer isolation boundaries, minimizes the risk of configuration errors, and enhances the runtime flexibility of the memory protection scheme.
 
 
-=== Re-configuration Non-preemption and Synchronization
+=== Reconfiguration Non-preemption and Synchronization
 
 To maintain the integrity of the SPMP configuration, the entire reconfiguration sequence during a context switch must execute atomically as a non-preemptible critical section.
 This is necessary because the process involves modifications to multiple CSRs, and any interruption could leave the system in an inconsistent or insecure state.

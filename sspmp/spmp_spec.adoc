@@ -83,7 +83,7 @@ include::images/bytefield/spmpaddr-rv64.adoc[]
 
 Every SPMP entry contains a 16-bit configuration field, `spmpcfg[i]`.
 Its lower 8 bits are an alias for the 8-bit field of the corresponding PMP configuration register.
-Figure <<spmpcfg>> illustrates the layout of `spmpcfg[i]`.
+<<spmpcfg>> illustrates the layout of `spmpcfg[i]`.
 Permission rules and their encodings are detailed in <<encoding>>.
 
 . The R, W, and X bits govern permissions for read, write, and instruction execution, respectively.
@@ -248,7 +248,7 @@ An access to an out-of-bounds index via `siselect` will return zero on read and 
 
 [NOTE]
 ====
-The rationale for disallowing `siselect` writes to clear a lock bit is to isolate this capability within the `miselect` CSR space, rather than differentiating it merely by privilege mode. 
+The rationale for disallowing `siselect` writes to clear a lock bit is to isolate this capability within the `miselect` CSR space, rather than merely differentiating by privilege mode. 
 
 The design choice to map only one SPMP entry per `siselect` value is motivated by performance. 
 Mapping multiple entries would necessitate a jump table or extra logic to select the correct target `sireg` register, adding overhead. 
