@@ -125,9 +125,9 @@ SPMP supports three distinct rule types: *S-mode-only*, *U-mode* and *Shared-Reg
 +
 . A *U-mode* rule is always enforced for User mode accesses. Its behavior for Supervisor mode accesses depends on the `sstatus.SUM` bit.
 +
-* With `sstatus.SUM` set, the rule is enforced for Supervisor mode data accesses, but execution permission is denied (termed *EnforceNoX* in <<spmpencode>>). This behavior provides a Supervisor Memory Execution Prevention (SMEP) guarantee.
+* With `sstatus.SUM` set, the rule is enforced for Supervisor mode data accesses, but execution permission is denied (termed *EnforceNoX* in <<spmpencode>>). This prevents the OS from executing the memory of an unprivileged process at all times.
 +
-* With `sstatus.SUM` clear, the rule is denied for any Supervisor mode access. This provides a Supervisor Memory Access Prevention (SMAP) guarantee.
+* With `sstatus.SUM` clear, the rule is denied for any Supervisor mode access. This prevents the OS from accessing the memory of an unprivileged process unless a specific code path is followed.
 +
 . The encoding `spmpcfg.SHARED == 1 and spmpcfg.U == 1` defines a *Shared-Region* rule. For shared regions, the state of the `sstatus.SUM` bit is irrelevant.
 +
