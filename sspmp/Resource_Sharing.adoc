@@ -74,10 +74,10 @@ Any access attempt by either mode to an index outside this range (i.e., `i >= 48
 
 [cols="^1,^2",stripes=even, options="header"]
 |===
-|`miselect` number| indirect CSR access of `mireg`
-|`miselect#0`|`mireg` -> `spmpaddr[0]`, `mireg2` -> `spmpcfg[0]`
-|`miselect#1`|`mireg` -> `spmpaddr[1]`, `mireg2` -> `spmpcfg[1]`
+|`miselect` value| indirect CSR access of `mireg`
+|`0x100`|`mireg` -> `spmpaddr[0]`, `mireg2` -> `spmpcfg[0]`
+|`0x101`|`mireg` -> `spmpaddr[1]`, `mireg2` -> `spmpcfg[1]`
 |    ...     |    ...     
-|`miselect#63`|`mireg` -> `spmpaddr[63]`, `mireg2` -> `spmpcfg[63]`
+|`0x13F`|`mireg` -> `spmpaddr[63]`, `mireg2` -> `spmpcfg[63]`
 |===
 

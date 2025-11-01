@@ -232,14 +232,14 @@ In a system with 48 SPMP entries, S-mode can address `SPMP[0..47]` using `sisele
 An access to an out-of-bounds index via `siselect` will return zero on read and be ignored on write.
 
 
-
+<<<
 [cols="^1,^2",stripes=even, options="header"]
 |===
-|`siselect` number| indirect CSR access of `sireg`
-|`siselect#0`|`sireg` -> `spmpaddr[0]`, `sireg2` -> `spmpcfg[0]`
-|`siselect#1`|`sireg` -> `spmpaddr[1]`, `sireg2` -> `spmpcfg[1]`
+|`siselect` value| indirect CSR access of `sireg`
+|`0x100`|`sireg` -> `spmpaddr[0]`, `sireg2` -> `spmpcfg[0]`
+|`0x101`|`sireg` -> `spmpaddr[1]`, `sireg2` -> `spmpcfg[1]`
 |    ...     |    ...
-|`siselect#63`|`sireg` -> `spmpaddr[63]`, `sireg2` -> `spmpcfg[63]`
+|`0x13F`|`sireg` -> `spmpaddr[63]`, `sireg2` -> `spmpcfg[63]`
 |===
 
 [NOTE]
