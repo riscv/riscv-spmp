@@ -9,7 +9,7 @@ SPMP checks can be performed by the hardware in parallel with PMA and PMP checks
 SPMP exceptions take priority over PMP or PMA exceptions.
 Consequently, if a memory access violates both SPMP and PMP/PMA rules, only the SPMP exception is reported.
 
-SPMP checks are enforced on all memory accesses originating from effective privilege modes less privileged than M-mode.
+SPMP checks are enforced on all memory accesses with effective privilege modes less privileged than M-mode.
 SPMP can be configured to grant permissions to U-mode, which has none by default, and to revoke permissions from S-mode.
 
 
@@ -95,7 +95,7 @@ Modifications to locked `spmpcfg[i]` and `spmpaddr[i]` registers are only permit
 Attempts to write to locked `spmpcfg[i]` and `spmpaddr[i]` registers using the `siselect` CSR are ignored, irrespective of privilege level.
 If a locked entry has `spmpcfg[i].A` set to TOR, writes to the preceding `spmpaddr[i-1]` via `siselect` are also ignored.
 . If locking is not a required feature, an implementation can hardwire the L bit to 0.
-. For any rule not designated as a `Shared-Region`, the U bit determines if it is `U-mode-only` (when set) or `S-mode-only` (when clear), as explained in <<encoding>>.
+. For any rule not designated as a `Shared-Region`, the U bit determines if it is `U-mode` (when set) or `S-mode-only` (when clear), as explained in <<encoding>>.
 . The SHARED bit identifies a rule as a `Shared-Region` rule.
 
 
@@ -119,11 +119,11 @@ Moreover, if resource sharing is statically defined (e.g., `mpmpdeleg.pmpnum` is
 === Encoding of Permissions
 
 
-SPMP supports three distinct rule types: *S-mode-only*, *U-mode-only* and *Shared-Region*.
+SPMP supports three distinct rule types: *S-mode-only*, *U-mode* and *Shared-Region*.
 
 . An *S-mode-only* rule is *enforced* for accesses from Supervisor mode and *denied* for accesses from User mode.
 +
-. A *U-mode-only* rule is always enforced for User mode accesses. Its behavior for Supervisor mode accesses depends on the `sstatus.SUM` bit.
+. A *U-mode* rule is always enforced for User mode accesses. Its behavior for Supervisor mode accesses depends on the `sstatus.SUM` bit.
 +
 * With `sstatus.SUM` set, the rule is enforced for Supervisor mode data accesses, but execution permission is denied (termed *EnforceNoX* in <<spmpencode>>). This behavior provides a Supervisor Memory Execution Prevention (SMEP) guarantee.
 +
