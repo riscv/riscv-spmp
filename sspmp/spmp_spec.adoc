@@ -34,10 +34,6 @@ The following table dictates which isolation mechanism is active based on the sa
 
 === Extension Dependencies
 
-. The SPMP is dependent on `Ss1p13`.
-+
-. The `Smpmpdeleg` extension is mandatory if M-mode (i.e., `Sm1p13`) is implemented.
-+
 . The `Sscsrind` extension for indirect CSR access must be implemented.
 +
 . The `sstatus.SUM` (permit Supervisor User Memory access) bit must be *writable*, deviating from the Privileged Architecture (i.e., `Svbare`). In SPMP, this writability is essential because the bit alters how S-mode load and store operations access user memory.
