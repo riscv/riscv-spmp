@@ -123,7 +123,7 @@ If  either `mpmpdeleg.pmpnum`  or `hspmpdeleg.pmpnum` is written with a value su
 to or greater than the number of implemented PMP entries, `hspmpdeleg.pmpnum` will read back as the number of remaining hSPMP entries. For example, if the number of implemented PMP entries is 32, `mpmpdeleg.pmpnum` is set to 16, and then `hspmpdeleg.pmpnum` is written a value of 32, the field will read back as 16. Or if initially,
 `mpmpdeleg.pmpnum` is set to 8, `hspmpdeleg.pmpnum` to 20 and then `mpmpdeleg.pmpnum` is written 16, `hspmpdeleg.pmpnum` is updated to 16. In the extreme, if `mpmpdeleg.pmpnum` is set to 32, `hspmpdeleg.pmpnum` must be updated to 0.
 
-`hspmpdeleg.pmpnum` must be set to a value larger than the index of any locked hSPMP entry. For example, if `hSPMP[7]` is locked, `hspmpdeleg.pmpnum` must be no less than 8.
+`hspmpdeleg.pmpnum` must be set to a value larger than the index of any locked hSPMP entry. For example, if `hSPMP[7]` is locked, `hspmpdeleg.pmpnum` must be no less than 8. `hspmpdeleg.pmpnum` is allowed to be updated to a value less than or equal to the index of any locked hSPMP entry only due to a write to `mpmpdeleg.pmpnum`.
 
 `hspmpdeleg.pmpnum` can be hardwired to allow an implementation to fix the hSPMP/vSPMP split only if `mpmpdeleg.pmpnum` is also hardwired.
 
