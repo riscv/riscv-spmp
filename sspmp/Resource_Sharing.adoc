@@ -80,10 +80,12 @@ Any access attempt by either mode to an index outside this range (i.e., `i >= 48
 |===
 
 
+Indirect accesses to SPMP CSRs are not ordered with respect to each other or with subsequent memory accesses. 
+To enforce ordering, software must execute an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0`, which synchronizes subsequent memory accesses with all preceding SPMP CSR writes.
+
 
 [NOTE]
 ====
-Indirect accesses to SPMP CSRs are not ordered with respect to each other or to subsequent memory accesses (this allows fast context switching of SPMP registers).
-While `SFENCE.VMA` instructions normally order preceding stores and subsequent implicit accesses to memory management structures, SPMP entries are also effectively regarded as memory management structures.  
-Consequently, to synchronize preceding indirect writes to SPMP registers with subsequent memory accesses, software must execute an `SFENCE.VMA` instruction with rs1=x0 and rs2=x0.
+Allowing indirect accesses to SPMP CSRs to be not ordered with respect to each other or to subsequent memory accesses enables fast context switching of SPMP registers. 
+While `SFENCE.VMA` instructions normally order preceding stores and subsequent implicit accesses to memory management structures, SPMP entries are also effectively regarded as memory management structures.
 ====
