@@ -9,7 +9,7 @@ SPMP checks can be performed by the hardware in parallel with PMA and PMP checks
 SPMP exceptions take priority over PMP or PMA exceptions.
 Consequently, if a memory access violates both SPMP and PMP/PMA rules, only the SPMP exception is reported.
 
-SPMP checks are enforced on all memory accesses originating from effective privilege modes less privileged than M-mode.
+SPMP checks are enforced on all memory accesses with effective privilege modes less privileged than M-mode.
 SPMP can be configured to grant permissions to U-mode, which has none by default, and to revoke permissions from S-mode.
 
 
@@ -34,10 +34,6 @@ The following table dictates which isolation mechanism is active based on the sa
 
 === Extension Dependencies
 
-. The SPMP is dependent on `Ss1p13`.
-+
-. The `Smpmpdeleg` extension is mandatory if M-mode (i.e., `Sm1p13`) is implemented.
-+
 . The `Sscsrind` extension for indirect CSR access must be implemented.
 +
 . The `sstatus.SUM` (permit Supervisor User Memory access) bit must be *writable*, deviating from the Privileged Architecture (i.e., `Svbare`). In SPMP, this writability is essential because the bit alters how S-mode load and store operations access user memory.
@@ -83,7 +79,7 @@ include::images/bytefield/spmpaddr-rv64.adoc[]
 
 Every SPMP entry contains a 16-bit configuration field, `spmpcfg[i]`.
 Its lower 8 bits are an alias for the 8-bit field of the corresponding PMP configuration register.
-Figure <<spmpcfg>> illustrates the layout of `spmpcfg[i]`.
+<<spmpcfg>> illustrates the layout of `spmpcfg[i]`.
 Permission rules and their encodings are detailed in <<encoding>>.
 
 . The R, W, and X bits govern permissions for read, write, and instruction execution, respectively.
@@ -95,7 +91,7 @@ Modifications to locked `spmpcfg[i]` and `spmpaddr[i]` registers are only permit
 Attempts to write to locked `spmpcfg[i]` and `spmpaddr[i]` registers using the `siselect` CSR are ignored, irrespective of privilege level.
 If a locked entry has `spmpcfg[i].A` set to TOR, writes to the preceding `spmpaddr[i-1]` via `siselect` are also ignored.
 . If locking is not a required feature, an implementation can hardwire the L bit to 0.
-. For any rule not designated as a `Shared-Region`, the U bit determines if it is `U-mode-only` (when set) or `S-mode-only` (when clear), as explained in <<encoding>>.
+. For any rule not designated as a `Shared-Region`, the U bit determines if it is `U-mode` (when set) or `S-mode-only` (when clear), as explained in <<encoding>>.
 . The SHARED bit identifies a rule as a `Shared-Region` rule.
 
 
@@ -119,15 +115,15 @@ Moreover, if resource sharing is statically defined (e.g., `mpmpdeleg.pmpnum` is
 === Encoding of Permissions
 
 
-SPMP supports three distinct rule types: *S-mode-only*, *U-mode-only* and *Shared-Region*.
+SPMP supports three distinct rule types: *S-mode-only*, *U-mode* and *Shared-Region*.
 
 . An *S-mode-only* rule is *enforced* for accesses from Supervisor mode and *denied* for accesses from User mode.
 +
-. A *U-mode-only* rule is always enforced for User mode accesses. Its behavior for Supervisor mode accesses depends on the `sstatus.SUM` bit.
+. A *U-mode* rule is always enforced for User mode accesses. Its behavior for Supervisor mode accesses depends on the `sstatus.SUM` bit.
 +
-* With `sstatus.SUM` set, the rule is enforced for Supervisor mode data accesses, but execution permission is denied (termed *EnforceNoX* in <<spmpencode>>). This behavior provides a Supervisor Memory Execution Prevention (SMEP) guarantee.
+* With `sstatus.SUM` set, the rule is enforced for Supervisor mode data accesses, but execution permission is denied (termed *EnforceNoX* in <<spmpencode>>). This prevents the OS from executing the memory of an unprivileged process at all times.
 +
-* With `sstatus.SUM` clear, the rule is denied for any Supervisor mode access. This provides a Supervisor Memory Access Prevention (SMAP) guarantee.
+* With `sstatus.SUM` clear, the rule is denied for any Supervisor mode access. This prevents the OS from accessing the memory of an unprivileged process unless a specific code path is followed.
 +
 . The encoding `spmpcfg.SHARED == 1 and spmpcfg.U == 1` defines a *Shared-Region* rule. For shared regions, the state of the `sstatus.SUM` bit is irrelevant.
 +
@@ -227,28 +223,24 @@ Each value of `siselect` maps to a corresponding set of SPMP CSRs.
 `sireg` is used to access the `spmpaddr` register, while `sireg2` is used for the `spmpcfg` register.
 The registers `sireg3` through `sireg6` are read-only 0.
 
-S-mode software can lock an SPMP entry by setting its `spmpcfg[i].L` bit.
-Once `spmpcfg[i].L` is set, any attempt to write to that SPMP entry via `siselect` is ignored, regardless of the privilege mode.
-The lock bit `spmpcfg[i].L` can only be cleared by an execution environment access using `miselect` (see <<m_mode_indirect_access>>).
-
 SPMP entries are indexed starting from zero.
 In a system with 48 SPMP entries, S-mode can address `SPMP[0..47]` using `siselect#0..47`.
 An access to an out-of-bounds index via `siselect` will return zero on read and be ignored on write.
 
 
-
+<<<
 [cols="^1,^2",stripes=even, options="header"]
 |===
-|`siselect` number| indirect CSR access of `sireg`
-|`siselect#0`|`sireg` -> `spmpaddr[0]`, `sireg2` -> `spmpcfg[0]`
-|`siselect#1`|`sireg` -> `spmpaddr[1]`, `sireg2` -> `spmpcfg[1]`
+|`siselect` value| indirect CSR access of `sireg`
+|`0x100`|`sireg` -> `spmpaddr[0]`, `sireg2` -> `spmpcfg[0]`
+|`0x101`|`sireg` -> `spmpaddr[1]`, `sireg2` -> `spmpcfg[1]`
 |    ...     |    ...
-|`siselect#63`|`sireg` -> `spmpaddr[63]`, `sireg2` -> `spmpcfg[63]`
+|`0x13F`|`sireg` -> `spmpaddr[63]`, `sireg2` -> `spmpcfg[63]`
 |===
 
 [NOTE]
 ====
-The rationale for disallowing `siselect` writes to clear a lock bit is to isolate this capability within the `miselect` CSR space, rather than differentiating it merely by privilege mode. 
+The rationale for disallowing `siselect` writes to clear a lock bit is to isolate this capability within the `miselect` CSR space, rather than merely differentiating by privilege mode. 
 
 The design choice to map only one SPMP entry per `siselect` value is motivated by performance. 
 Mapping multiple entries would necessitate a jump table or extra logic to select the correct target `sireg` register, adding overhead. 
