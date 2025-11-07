@@ -44,7 +44,7 @@ The following table dictates which isolation mechanism is active based on the sa
 [[spmp_csrs]]
 === S-level Physical Memory Protection CSRs
 
-Each SPMP entry is composed of a 16-bit configuration field within an XLEN-bit configuration register and an associated XLEN-bit address register.
+Each SPMP entry is composed of a 16-bit configuration field within an SXLEN-bit configuration register and an associated SXLEN-bit address register.
 From S-mode, the SPMP registers are accessible only via the indirect access mechanism (see <<access_method>>).
 In TOR mode, an entry also uses the address register of the preceding entry to define its range (see <<address_matching>>).
 Implementations support up to 64 SPMP entries.
