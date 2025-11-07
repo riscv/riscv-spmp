@@ -87,7 +87,6 @@ Permission rules and their encodings are detailed in <<encoding>>.
 . Bits 5 and 6 are reserved for future standard use.
 . The L (lock) bit designates an entry as locked.
 Setting the L bit locks the SPMP entry, regardless of the A field's setting (even OFF).
-Modifications to locked `spmpcfg[i]` and `spmpaddr[i]` registers are only permitted through execution environment access via `miselect`.
 Attempts to write to locked `spmpcfg[i]` and `spmpaddr[i]` registers using the `siselect` CSR are ignored, irrespective of privilege level.
 If a locked entry has `spmpcfg[i].A` set to TOR, writes to the preceding `spmpaddr[i-1]` via `siselect` are also ignored.
 . If locking is not a required feature, an implementation can hardwire the L bit to 0.
@@ -176,7 +175,7 @@ Software can probe the minimum SPMP granularity.
 This is done by clearing `spmpcfg[i]`, writing all ones to `spmpaddr[i]`, and then reading back the resulting `spmpaddr[i]` value.
 If asciimath:[G] is the index of the least-significant bit set in the result, the granularity is asciimath:[2^{G+2}] bytes.
 
-Software can also determine the implemented physical address size.
+Software can also determine the implemented physical address bits in `spmpaddr`.
 This involves setting `spmpcfg[i].A` to `0b11`, writing all ones to `spmpaddr[i]`, and reading back the result.
 (Consult the "NAPOT range encoding in PMP address and configuration registers" table in the {privspec} for interpretation.)
 
