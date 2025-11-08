@@ -136,7 +136,7 @@ SPMP supports three distinct rule types: *S-mode-only*, *U-mode* and *Shared-Reg
 The complete table of encodings and their outcomes is presented in <<spmpencode>>:
 
 [[spmpencode]]
-image::SPMP_Encoding_Table_v11.svg[title="SPMP Encoding Table"]
+image::SPMP_Encoding_Table_v12.svg[title="SPMP Encoding Table"]
 
 *Deny*: The memory access is blocked and an exception is raised.
 
