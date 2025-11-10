@@ -56,8 +56,10 @@ An SPMP entry refers to the register pair `spmpcfg[i]` and `spmpaddr[i]`.
 
 An SPMP rule is defined by the contents of an `spmpcfg` register and its corresponding `spmpaddr` register(s). 
 These registers collectively define a protected physical memory region and its access constraints. 
+
 For a rule to be valid, its `spmpcfg[i].A` field must not be OFF. 
 Furthermore, if `spmpcfg[i].A` is set to TOR, the condition `spmpaddr[i-1] < spmpaddr[i]` must hold.
+Particularly, if `spmpcfg[0].A` is set to TOR, zero is used for the lower bound.
 ====
 
 The SPMP address registers, named `spmpaddr0` through `spmpaddr63`, share the same layout as PMP architecture.
