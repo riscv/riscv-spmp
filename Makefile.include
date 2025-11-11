@@ -50,8 +50,7 @@ OPTIONS := --trace \
 	-D /outputs \
 	--failure-level=WARNING \
 	--require=asciidoctor-diagram \
-	--require=asciidoctor-mathematical \
-	--require=asciidoctor-kroki
+	--require=asciidoctor-mathematical
 TOUCHFILE := $(DESTDIR)/buildcmd
 
 # Change these at your peril;

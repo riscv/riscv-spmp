@@ -44,7 +44,7 @@ The following table dictates which isolation mechanism is active based on the sa
 [[spmp_csrs]]
 === S-level Physical Memory Protection CSRs
 
-Each SPMP entry is composed of a 16-bit configuration field within an XLEN-bit configuration register and an associated XLEN-bit address register.
+Each SPMP entry is composed of a 16-bit configuration field within an SXLEN-bit configuration register and an associated SXLEN-bit address register.
 From S-mode, the SPMP registers are accessible only via the indirect access mechanism (see <<access_method>>).
 In TOR mode, an entry also uses the address register of the preceding entry to define its range (see <<address_matching>>).
 Implementations support up to 64 SPMP entries.
@@ -56,8 +56,10 @@ An SPMP entry refers to the register pair `spmpcfg[i]` and `spmpaddr[i]`.
 
 An SPMP rule is defined by the contents of an `spmpcfg` register and its corresponding `spmpaddr` register(s). 
 These registers collectively define a protected physical memory region and its access constraints. 
+
 For a rule to be valid, its `spmpcfg[i].A` field must not be OFF. 
 Furthermore, if `spmpcfg[i].A` is set to TOR, the condition `spmpaddr[i-1] < spmpaddr[i]` must hold.
+Particularly, if `spmpcfg[0].A` is set to TOR, zero is used for the lower bound.
 ====
 
 The SPMP address registers, named `spmpaddr0` through `spmpaddr63`, share the same layout as PMP architecture.
@@ -87,7 +89,6 @@ Permission rules and their encodings are detailed in <<encoding>>.
 . Bits 5 and 6 are reserved for future standard use.
 . The L (lock) bit designates an entry as locked.
 Setting the L bit locks the SPMP entry, regardless of the A field's setting (even OFF).
-Modifications to locked `spmpcfg[i]` and `spmpaddr[i]` registers are only permitted through execution environment access via `miselect`.
 Attempts to write to locked `spmpcfg[i]` and `spmpaddr[i]` registers using the `siselect` CSR are ignored, irrespective of privilege level.
 If a locked entry has `spmpcfg[i].A` set to TOR, writes to the preceding `spmpaddr[i-1]` via `siselect` are also ignored.
 . If locking is not a required feature, an implementation can hardwire the L bit to 0.
@@ -137,7 +138,7 @@ SPMP supports three distinct rule types: *S-mode-only*, *U-mode* and *Shared-Reg
 The complete table of encodings and their outcomes is presented in <<spmpencode>>:
 
 [[spmpencode]]
-image::SPMP_Encoding_Table_v11.svg[title="SPMP Encoding Table"]
+image::SPMP_Encoding_Table_v12.svg[title="SPMP Encoding Table"]
 
 *Deny*: The memory access is blocked and an exception is raised.
 
@@ -176,7 +177,7 @@ Software can probe the minimum SPMP granularity.
 This is done by clearing `spmpcfg[i]`, writing all ones to `spmpaddr[i]`, and then reading back the resulting `spmpaddr[i]` value.
 If asciimath:[G] is the index of the least-significant bit set in the result, the granularity is asciimath:[2^{G+2}] bytes.
 
-Software can also determine the implemented physical address size.
+Software can also determine the implemented physical address bits in `spmpaddr`.
 This involves setting `spmpcfg[i].A` to `0b11`, writing all ones to `spmpaddr[i]`, and reading back the result.
 (Consult the "NAPOT range encoding in PMP address and configuration registers" table in the {privspec} for interpretation.)
 
