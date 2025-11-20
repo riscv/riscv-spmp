@@ -1,3 +1,39 @@
+[[Hypervisor_Extended_SPMP]]
+== "Sshspmp" Extension for Hypervisor-Extended SPMP
+
+=== Extension Dependencies
+
+. The `Sshspmp`  is dependent on the baseline SPMP extension, `Sspmp`.
++
+. The `Sshspmp` extension is dependent on `Ss1p13` and the Hypervisor Extension, with the following requirement relaxations:
+
+.. The RISC-V Privileged Architecture specification states that for the Hypervisor Extension to be implemented “standard page-based address translation must be supported, either Sv32 for RV32, or a minimum of Sv39 for RV64.”. When `Sshspmp` is implemented, this requirement is relaxed:
+    * The only mandatory translation mode in `satp` is `Bare`.
+
+.. When `Sshspmp` is implemented, second-stage translation support is not required to implement the Hypervisor Extension:
+    * The only mandatory mode in `hgatp` is `Bare`.
+
+=== Hypervisor-Extended SPMP (hSPMP)
+
+The `Shspmp` extension augments the baseline SPMP functionality to support virtualization into the hypervisor-extended SPMP (hSPMP). When V = 0, hSPMP behaves identically to the baseline SPMP. When V = 1 and `hgatp.MODE = Bare`, hSPMP enforces access checks on all memory accesses from VS and VU-modes, effectively applying SPMP protections to guest execution contexts. The permission encodings remain consistent with those of the baseline SPMP when `spmpcfg.U = 1`, but are applied to VS/VU rather than U-mode accesses. 
+
+When the `Zicfiss` extension is implemented, the encoding reserved for shadow stack regions (`spmpcfg.RWX==010 & spmpcfg.SHARED==1`) is also considered reserved for hSPMP when V = 1. All VS/VU accesses to such regions must be denied. When V = 0, the same encoding continues to define shadow stack regions for HS/U accesses as specified by the `Zicfiss` extension.
+
+[NOTE]
+====
+The denial of VS/VU accesses to shadow stack regions reflects the intent of the Zicfiss specification, which states that “The G-stage address translation and protections remain unaffected by the Zicfiss extension. The xwr = 010b encoding in the G-stage PTE remains reserved.” Accordingly, hSPMP adopts the same restriction for guest accesses.
+The Zicfiss specification further notes that “A future extension may define a shadow stack encoding in the G-stage page table to support use cases such as a hypervisor enforcing shadow stack protections for its guests.”. When such an extension is ratified, hSPMP will be updated to support equivalent functionality.
+====
+
+Additionally, the Hypervisor Virtual Machine Load and Store instructions (HLV, HLVX, HSV), when executed from M-mode, HS-mode, or U-mode (when `hstatus.HU = 1`), are also subject to hSPMP checks under the V = 1 condition.
+
+When a VS/VU access is denied by hSPMP, an exception is raised. The type of exception depends on the nature of the access attempt, i.e., whether it is a load, store/AMO, or instruction fetch. The hSPMP reuses the guest page fault exception codes (20, 21, and 23, for instruction, load, and store/AMO accesses, respectively) defined by the Hypervisor extension. 
+
+[NOTE]
+====
+Since, when V = 1, hSPMP is only active when `hgatp.MODE = Bare`, hSPMP protection and G-stage translation are mutually exclusive. Consequently, when hSPMP is active, paged virtual memory translations are disabled, and guest page fault exception codes can be repurposed to indicate guest hSPMP access violations.
+====
+
 == "Sshspmpsw" Extension for Optimizing Context Switching of hSPMP Entries
 
 === Extension Dependencies
