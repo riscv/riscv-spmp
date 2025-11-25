@@ -49,7 +49,8 @@ The following table dictates which isolation mechanism is active based on the sa
 [[spmp_csrs]]
 === S-level Physical Memory Protection CSRs
 
-Each SPMP entry is composed of a 16-bit configuration field within an SXLEN-bit configuration register and an associated SXLEN-bit address register.
+// Each SPMP entry is composed of a 16-bit configuration field within an SXLEN-bit configuration register and an associated SXLEN-bit address register.
+Each SPMP entry is composed of an SXLEN-bit configuration register and an associated SXLEN-bit address register.
 From S-mode, the SPMP registers are accessible only via the indirect access mechanism (see <<access_method>>).
 In TOR mode, an entry also uses the address register of the preceding entry to define its range (see <<address_matching>>).
 Implementations support up to 64 SPMP entries.
@@ -84,7 +85,8 @@ include::images/bytefield/spmpaddr-rv32.adoc[]
 .SPMP address register format, RV64.
 include::images/bytefield/spmpaddr-rv64.adoc[]
 
-Every SPMP entry contains a 16-bit configuration field, `spmpcfg[i]`.
+// Every SPMP entry contains a 16-bit configuration field, `spmpcfg[i]`.
+Every SPMP entry contains an SXLEN-bit configuration register, `spmpcfg[i]`.
 Its lower 8 bits are an alias for the 8-bit field of the corresponding PMP configuration register.
 <<spmpcfg>> illustrates the layout of `spmpcfg[i]`.
 Permission rules and their encodings are detailed in <<encoding>>.
@@ -252,7 +254,7 @@ The rationale for disallowing `siselect` writes to clear a lock bit is to isolat
 The design choice to map only one SPMP entry per `siselect` value is motivated by performance. 
 Mapping multiple entries would necessitate a jump table or extra logic to select the correct target `sireg` register, adding overhead. 
 
-When `spmpcfg1` is written via `siselect` and `sireg2`, the full 16-bit value is written right-justified, even though the hardware may store the upper and lower 8 bits in separate register arrays. 
+When `spmpcfg1` is written to via `siselect` and `sireg2`, the full SXLEN-bit value is written right-justified, even though the hardware may store the upper bits and lower 8 bits in separate register arrays. 
 
 For further details on indirect CSR access, refer to the `Sscsrind` extension specification in the {privspec}.
 ====
