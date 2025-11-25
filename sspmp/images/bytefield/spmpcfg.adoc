@@ -8,7 +8,7 @@
 (def boxes-per-row 44)
 
 
-(draw-box "15" {:span 4 :text-anchor "start" :borders {}})
+(draw-box "SXLEN-1" {:span 4 :text-anchor "start" :borders {}})
 (draw-box "10" {:span 4 :text-anchor "end" :borders {}})
 (draw-box "9" {:span 4 :borders {}})
 (draw-box "8" {:span 4 :borders {}})
@@ -33,7 +33,7 @@
 (draw-box "R (WARL)" {:span 4 :text-anchor "middle" :borders{:top :border-unrelated :bottom :border-unrelated :left :border-unrelated :right :border-unrelated}})
 
 
-(draw-box "6" {:span 8 :borders {}})
+(draw-box "SXLEN-10" {:span 8 :borders {}})
 (draw-box "1" {:span 4 :borders {}})
 (draw-box "1" {:span 4 :borders {}})
 (draw-box "1" {:span 4 :borders {}})
