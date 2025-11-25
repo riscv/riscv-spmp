@@ -12,8 +12,8 @@ Consequently, if a memory access violates both SPMP and PMP/PMA rules, only the 
 SPMP checks are enforced on all memory accesses with effective privilege modes less privileged than M-mode.
 SPMP can be configured to grant permissions to U-mode, which has none by default, and to revoke permissions from S-mode.
 
-[hspmp]#If the Hypervisor Extension is implemented in conjunction with Sspmp, when V = 1 and hgatp.MODE = Bare, SPMP enforces access checks on all memory accesses from VS and VU-modes, effectively applying SPMP protections to guest execution contexts.#
-[hspmp]#Additionally, the Hypervisor Virtual Machine Load and Store instructions (HLV, HLVX, HSV), when executed from M-mode, HS-mode, or U-mode (when hstatus.HU = 1), are also subject to SPMP checks under the V = 1 condition.#
+If the Hypervisor Extension is implemented in conjunction with Sspmp, when V = 1 and hgatp.MODE = Bare, SPMP enforces access checks on all memory accesses from VS and VU-modes, effectively applying SPMP protections to guest execution contexts.
+Additionally, the Hypervisor Virtual Machine Load and Store instructions (HLV, HLVX, HSV), when executed from M-mode, HS-mode, or U-mode (when hstatus.HU = 1), are also subject to SPMP checks under the V = 1 condition.
 
 
 [[spmp-and-paging]]
@@ -43,7 +43,7 @@ The following table dictates which isolation mechanism is active based on the sa
 +
 . The `sstatus.MXR` (Make eXecutable Readable) bit must be *writable*, deviating from the Privileged Architecture (i.e., `Svbare`). This writability supports M-mode emulation handlers that require reading instructions with `MXR=1 and MPRV=1`.
 +
-. [hspmp]#The Sspmp extension can be virtualized. If the Hypervisor Extension is implemented in conjunction with Sspmp, the only mandatory translation mode in both hgatp and satp is Bare.#
+. The Sspmp extension can be virtualized. If the Hypervisor Extension is implemented in conjunction with Sspmp, the only mandatory translation mode in both hgatp and satp is Bare.
 
 
 [[spmp_csrs]]
@@ -141,7 +141,7 @@ SPMP supports three distinct rule types: *S-mode-only*, *U-mode* and *Shared-Reg
 +
 . The encoding `spmpcfg.RWX=010`, `spmpcfg.RWX=011`, and the combination `spmpcfg.SHARED == 1 and spmpcfg.U == 0` are all reserved for future standard use.
 
-[hspmp]#If the Hypervisor Extension is implemented, when V = 1 and hgatp.MODE = Bare, the permission encodings remain consistent with those when spmpcfg.U = 1, but are applied to VS/VU rather than U-mode accesses.#
+If the Hypervisor Extension is implemented, when V = 1 and hgatp.MODE = Bare, the permission encodings remain consistent with those when spmpcfg.U = 1, but are applied to VS/VU rather than U-mode accesses.
 
 The complete table of encodings and their outcomes is presented in <<spmpencode>>:
 
@@ -271,7 +271,7 @@ S-mode software (e.g., an OS) can differentiate between an SPMP fault and a stan
 It is important to note that a single instruction can result in multiple memory accesses that are not guaranteed to be atomic relative to each other.
 
 
-[hspmp]#If the Hypervisor Extension is implemented, when a VS/VU access is denied by SPMP, an exception is raised. The type of exception depends on the nature of the access attempt, i.e., whether it is a load, store/AMO, or instruction fetch. SPMP reuses the guest page fault exception codes (20, 21, and 23, for instruction, load, and store/AMO accesses, respectively) defined by the Hypervisor extension.#
+If the Hypervisor Extension is implemented, when a VS/VU access is denied by SPMP, an exception is raised. The type of exception depends on the nature of the access attempt, i.e., whether it is a load, store/AMO, or instruction fetch. SPMP reuses the guest page fault exception codes (20, 21, and 23, for instruction, load, and store/AMO accesses, respectively) defined by the Hypervisor extension.
 
 
 Table of exception codes:
@@ -282,13 +282,13 @@ Table of exception codes:
 |0|12|Instruction page fault
 |0|13|Load page fault
 |0|15|Store/AMO page fault
-|0|20|[hspmp]#Instruction guest-page fault#
-|0|21|[hspmp]#Load guest-page fault#
-|0|23|[hspmp]#Store/AMO guest-page fault#
+|0|20|Instruction guest-page fault
+|0|21|Load guest-page fault
+|0|23|Store/AMO guest-page fault
 |===
 
 
 [NOTE]
 ====
-[hspmp]#Since, when V = 1, SPMP is only active when hgatp.MODE = Bare, SPMP protection and G-stage translation are mutually exclusive. Consequently, when SPMP is active, paged virtual memory translations are disabled, and guest page fault exception codes can be repurposed to indicate guest SPMP access violations.#
+Since, when V = 1, SPMP is only active when hgatp.MODE = Bare, SPMP protection and G-stage translation are mutually exclusive. Consequently, when SPMP is active, paged virtual memory translations are disabled, and guest page fault exception codes can be repurposed to indicate guest SPMP access violations.
 ====
