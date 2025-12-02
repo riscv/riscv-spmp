@@ -27,3 +27,9 @@ The proposed SPMP specifications (non-ratified, under discussion) has been contr
 * Fabrice Marinet
 * Noureddine Ait Said
 * Xi Zhao
+* Andrew Waterman
+* Earl Killian
+* Greg Favor
+* John Hauser
+* Krste Asanović
+* Vedvyas Shanbhogue
