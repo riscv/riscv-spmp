@@ -12,29 +12,8 @@ Consequently, if a memory access violates both SPMP and PMP/PMA rules, only the 
 SPMP checks are enforced on all memory accesses with effective privilege modes less privileged than M-mode.
 SPMP can be configured to grant permissions to U-mode, which has none by default, and to revoke permissions from S-mode.
 
-If the Hypervisor Extension is implemented in conjunction with Sspmp, when V = 1 and hgatp.MODE = Bare, SPMP enforces access checks on all memory accesses from VS and VU-modes, effectively applying SPMP protections to guest execution contexts.
-Additionally, the Hypervisor Virtual Machine Load and Store instructions (HLV, HLVX, HSV), when executed from the execution environment, HS-mode, or U-mode (when hstatus.HU = 1), are also subject to SPMP checks under the V = 1 condition.
-
-
-[[spmp-and-paging]]
-=== SPMP and Paging
-SPMP and paged virtual memory are mutually exclusive.
-//  and cannot be enabled concurrently for two primary reasons:
-
-// . Enabling both introduces a redundant layer of permission checks for each memory access.
-// +
-// . Paged virtual memory, by itself, offers a sufficient level of protection.
-
-The following table dictates which isolation mechanism is active based on the satp configuration.
-
-
-[cols="^1,^1", stripes=even, options="header"]
-|===
-|satp|Isolation mechanism
-|satp.mode == Bare with Sspmp |SPMP only
-|satp.mode == Bare without Sspmp|no S-mode protection checks
-|satp.mode != Bare |Paged Virtual Memory only
-|===
+If the Hypervisor Extension is implemented in conjunction with `Sspmp`, when V = 1 and hgatp.MODE = Bare, SPMP enforces access checks on all memory accesses from VS and VU-modes, effectively applying SPMP protections to guest execution contexts.
+Additionally, the Hypervisor Virtual Machine Load and Store instructions (HLV, HLVX, HSV), when executed from the HS-mode, or U-mode (when hstatus.HU = 1), are also subject to SPMP checks under the V = 1 condition.
 
 
 === Extension Dependencies
@@ -45,8 +24,7 @@ The following table dictates which isolation mechanism is active based on the sa
 +
 . The `sstatus.MXR` (Make eXecutable Readable) bit must be *writable*. This writability supports M-mode emulation handlers that require reading instructions with `MXR=1 and MPRV=1`.
 +
-. If the Hypervisor Extension is implemented in conjunction with Sspmp, the only mandatory translation mode in both hgatp and satp is Bare.
-
+. If the Hypervisor Extension is implemented in conjunction with `Sspmp`, the only mandatory translation mode in both hgatp and satp is Bare.
 
 
 [NOTE]
@@ -73,10 +51,10 @@ An SPMP rule is defined by the contents of an `spmpcfg` register and its corresp
 These registers collectively define a protected physical memory region and its access constraints. 
 ====
 
-The SPMP address registers, named `spmpaddr0` through `spmpaddr63`, share the same layout as the machine-mode PMP architecture.
+The SPMP address registers, named `spmpaddr0` through `spmpaddr63`, share the same layout as the M-mode PMP architecture.
 On RV32 systems, each `spmpaddr` register encodes a 34-bit physical address from bit 33 down to bit 2, as illustrated in <<spmpaddr-rv32>>.
 On RV64 systems, each `spmpaddr` register encodes a 56-bit physical address from bit 55 down to bit 2, as shown in <<spmpaddr-rv64>>.
-An implementation may support fewer address bits, particularly on systems with a smaller physical address space.
+An implementation may support fewer address bits on systems with a smaller physical address space.
 All writable SPMP entries should implement the same number of address bits.
 Since not all physical address bits must be implemented, the SPMP address registers are considered WARL, with exceptions defined by granularity rules.
 Refer to the {privspec}, Section 3.7: Physical Memory Protection, Address Matching.
@@ -91,7 +69,6 @@ include::images/bytefield/spmpaddr-rv32.adoc[]
 include::images/bytefield/spmpaddr-rv64.adoc[]
 
 Every SPMP entry contains an SXLEN-bit configuration register, `spmpcfg[i]`.
-// Its lower 8 bits are an alias for the 8-bit field of the corresponding PMP configuration register.
 <<spmpcfg>> illustrates the layout of `spmpcfg[i]`.
 Permission rules and their encodings are detailed in <<encoding>>.
 
@@ -118,9 +95,45 @@ M-mode can leverage the L bit to create a sandbox for S-mode software.
 This is achieved by setting and locking high-priority SPMP entries where `spmpcfg[i].U` is 1. 
 This mechanism effectively thwarts privilege escalation attacks that might try to reconfigure SPMP entries to bypass S-mode restrictions. 
 While PMP/ePMP entries could offer a similar function, the resulting configuration is not identical because PMP does not distinguish between S-mode and U-mode. 
-Moreover, if resource sharing is statically defined (e.g., `mpmpdeleg.pmpnum` is hardwired, see <<PMP_Entry_Sharing>>), there might not be enough PMP/ePMP entries to enforce the intended isolation policy.
+Moreover, if resource sharing is statically defined (see <<PMP_Entry_Sharing>>), there might not be enough PMP/ePMP entries to enforce the intended isolation policy.
 ====
 
+
+[[address_matching]]
+=== Address Matching
+
+The A field within an SPMP entry's configuration register determines the address-matching mode for its associated spmpaddr register.
+The following table details the A field's encoding.
+
+[cols="^1,^1,^3", stripes=even, options="header"]
+|===
+|spmpcfg[i].A|Name|Description
+|0|OFF|Null region (disabled)
+|1|TOR|Top of range
+|2|NA4|Naturally aligned four-byte region
+|3|NAPOT|Naturally aligned power-of-two region, ≥8 bytes
+|===
+
+
+[NOTE]
+====
+This encoding is consistent with the PMP/ePMP.
+For comprehensive details, refer to the "Address Matching" subsection for PMP in the {privspec}.
+
+For a rule to be valid, its `spmpcfg[i].A` field must not be OFF. 
+Furthermore, if `spmpcfg[i].A` is set to TOR, the condition `spmpaddr[i-1] < spmpaddr[i]` must hold.
+Particularly, if `spmpcfg[0].A` is set to TOR, zero is used for the lower bound.
+
+Software can probe the minimum SPMP granularity.
+This is done by clearing `spmpcfg[i]`, writing all ones to `spmpaddr[i]`, and then reading back the resulting `spmpaddr[i]` value.
+If asciimath:[G] is the index of the least-significant bit set in the result, the granularity is asciimath:[2^{G+2}] bytes.
+
+Software can also determine the implemented physical address bits in `spmpaddr`.
+This involves setting `spmpcfg[i].A` to `0b11`, writing all ones to `spmpaddr[i]`, and reading back the result.
+(Consult the "NAPOT range encoding in PMP address and configuration registers" table in the {privspec} for interpretation.)
+
+Because the `spmpcfg[i].A` field is WARL, an implementation is free to hardwire a specific address-matching mode.
+====
 
 
 [[encoding]]
@@ -168,51 +181,7 @@ The semantics of `sstatus.SUM` within SPMP are consistent with its definition in
 ====
 
 
-[[address_matching]]
-=== Address Matching
-
-The A field within an SPMP entry's configuration register determines the address-matching mode for its associated spmpaddr register.
-The following table details the A field's encoding.
-
-[cols="^1,^1,^3", stripes=even, options="header"]
-|===
-|spmpcfg[i].A|Name|Description
-|0|OFF|Null region (disabled)
-|1|TOR|Top of range
-|2|NA4|Naturally aligned four-byte region
-|3|NAPOT|Naturally aligned power-of-two region, ≥8 bytes
-|===
-
-For a rule to be valid, its `spmpcfg[i].A` field must not be OFF. 
-Furthermore, if `spmpcfg[i].A` is set to TOR, the condition `spmpaddr[i-1] < spmpaddr[i]` must hold.
-Particularly, if `spmpcfg[0].A` is set to TOR, zero is used for the lower bound.
-
-
-[NOTE]
-====
-This encoding is consistent with the PMP/ePMP.
-For comprehensive details, refer to the "Address Matching" subsection for PMP in the {privspec}.
-====
-
-
-
-[NOTE]
-====
-Software can probe the minimum SPMP granularity.
-This is done by clearing `spmpcfg[i]`, writing all ones to `spmpaddr[i]`, and then reading back the resulting `spmpaddr[i]` value.
-If asciimath:[G] is the index of the least-significant bit set in the result, the granularity is asciimath:[2^{G+2}] bytes.
-
-Software can also determine the implemented physical address bits in `spmpaddr`.
-This involves setting `spmpcfg[i].A` to `0b11`, writing all ones to `spmpaddr[i]`, and reading back the result.
-(Consult the "NAPOT range encoding in PMP address and configuration registers" table in the {privspec} for interpretation.)
-
-Because the `spmpcfg[i].A` field is WARL, an implementation is free to hardwire a specific address-matching mode.
-====
-
-
 === Matching Logic
-
-
 . SPMP entries are statically prioritized.
 +
 . The lowest-numbered SPMP entry that matches any byte of an access (indicated by an address and the accessed length) determines whether that access is allowed or denied.
@@ -239,6 +208,23 @@ SPMP rules are checked for all memory accesses, both implicit and explicit, that
 The execution environment is expected to configure one or more SPMP entries to grant S-mode its necessary baseline permissions. 
 S-mode software can subsequently constrain these permissions by refining the SPMP entries.
 ====
+
+
+[[spmp-and-paging]]
+=== SPMP and Paging
+SPMP and paged virtual memory are mutually exclusive.
+
+The following table dictates which isolation mechanism is active based on the satp configuration.
+
+
+[cols="^1,^1", stripes=even, options="header"]
+|===
+|satp|Isolation mechanism
+|satp.mode == Bare with Sspmp |SPMP only
+|satp.mode == Bare without Sspmp|no S-mode protection checks
+|satp.mode != Bare |Paged Virtual Memory only
+|===
+
 
 
 [[access_method]]

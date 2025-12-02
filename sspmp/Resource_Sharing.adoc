@@ -4,7 +4,7 @@
 The similar architecture of PMP and SPMP registers, including their shared address-matching logic, makes hardware reuse a practical approach for resource conservation.
 This chapter introduces the `Smpmpdeleg` extension, a mechanism that allows hardware resources to be dynamically allocated between PMP and SPMP.
 
-*This extension is mandatory for implementations that support Sspmp (<<S-level_Physical_Memory_Protection>>) in conjunction with M-mode (i.e., `Sm1p13`).*
+*This extension is mandatory for implementations that support Sspmp in conjunction with M-mode (i.e., `Sm1p13`).*
 To streamline the specification and reduce optional features, the `Smpmpdeleg` extension implements 64 PMP entries, but fewer can be writable; any non-writable entries behave as read-only zero.
 
 
@@ -40,12 +40,17 @@ Both PMP and SPMP entries are indexed starting from zero.
 For example, in an implementation with 64 total entries where `pmpnum` is configured to 16:
 
 . PMP entries 0 through 15 act as PMP (i.e., `PMP[0..15]`) and are accessible via standard PMP CSRs (i.e., `pmpcfg[0..3]` and `pmpaddr[0..15]` for RV32; `pmpcfg[0,2]` and `pmpaddr[0..15]` for RV64).
-. The remaining 48 entries are delegated as SPMP (i.e., `SPMP[0..47]`) and are indirectly accessed via `xiselect` (see <<m_mode_indirect_access>> and <<access_method>>).
+. The remaining 48 entries are delegated as SPMP (i.e., `SPMP[0..47]`) and are indirectly accessed via `xiselect` (see <<access_method>> and <<m_mode_indirect_access>>).
 . Accesses to out-of-range indices, such as reading `PMP[16]` or writing to `SPMP[48]` in this scenario, are handled as follows: reads return zero, and writes are ignored.
 
 
+*Configuration registers:*
 
-*Reconfiguration:*
+The configuration register `spmpcfg[i]` of an SPMP entry is SXLEN-bit.
+Its lower 8 bits are an alias for the 8-bit field in the corresponding M-mode PMP configuration register.
+
+
+*Reconfiguration of delegated entries:*
 
 . M-mode software can dynamically adjust the allocation between PMP and SPMP by writing to the `mpmpdeleg` CSR.
 . The `pmpnum` value cannot be set to an index that is less than or equal to that of any locked PMP entry.
@@ -60,9 +65,9 @@ PMP entries are accessed directly through their dedicated CSRs (i.e., `pmpcfg` a
 Delegated SPMP entries, however, are accessed indirectly using the `xiselect` CSR (i.e., `siselect` and `miselect`).
 
 For these indirect accesses, `miselect` selects the target SPMP entry, `mireg` accesses its `spmpaddr` register, and `mireg2` accesses its `spmpcfg` register.
-The `mireg3` through `mireg6` are read-only 0.
+The `mireg3` through `mireg6` are reserved as WPRI.
 
-The lock bit (`spmpcfg[i].L`) of an SPMP entry can only be cleared by the execution environment (M-mode in this case) through an indirect access using `miselect`.
+The lock bit (`spmpcfg[i].L`) of an SPMP entry can only be cleared by M-mode through an indirect access using `miselect`.
 
 The view provided by `miselect` is identical to that of `siselect` (see <<access_method>>).
 For instance, if 48 out of 64 entries are delegated, both S-mode (via `siselect` indices 0-47) and M-mode (via `siselect` or `miselect` indices 0-47) can access `SPMP[0..47]`.
@@ -79,12 +84,7 @@ Any access attempt by either mode to an index outside this range (i.e., `i >= 48
 |===
 
 
-Indirect accesses to SPMP CSRs are not ordered with respect to each other or with subsequent memory accesses. 
-To enforce ordering, software must execute an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0`, which synchronizes subsequent memory accesses with all preceding SPMP CSR writes.
+*Memory access in M-mode:*
+If the effective privilege mode of the memory access is M, the access is `allowed` regardless of the SPMP permissions.
 
-
-[NOTE]
-====
-Allowing indirect accesses to SPMP CSRs to be not ordered with respect to each other or to subsequent memory accesses enables fast context switching of SPMP registers. 
-While `SFENCE.VMA` instructions normally order preceding stores and subsequent implicit accesses to memory management structures, SPMP entries are also effectively regarded as memory management structures.
-====
+If the Hypervisor Extension is implemented in conjunction with `Sspmp`, then when V = 1 and hgatp.MODE = Bare, the Hypervisor Virtual Machine Load and Store instructions (HLV, HLVX, HSV) executed from M-mode are subject to SPMP checks.
