@@ -5,8 +5,7 @@ The similar architecture of PMP and SPMP registers, including their shared addre
 This chapter introduces the `Smpmpdeleg` extension, a mechanism that allows hardware resources to be dynamically allocated between PMP and SPMP.
 
 *This extension is mandatory for implementations that support Sspmp (<<S-level_Physical_Memory_Protection>>) in conjunction with M-mode (i.e., `Sm1p13`).*
-To streamline the specification and reduce optional features, the `Smpmpdeleg` extension mandates a total of 64 PMP entries.
-However, an implementation retains the flexibility to provide fewer physical entries; any unimplemented entries behave as read-only zero.
+To streamline the specification and reduce optional features, the `Smpmpdeleg` extension implements 64 PMP entries, but fewer can be writable; any non-writable entries behave as read-only zero.
 
 
 
@@ -18,9 +17,9 @@ This delegation is managed by an MXLEN-bit M-mode CSR named `mpmpdeleg`, whose l
 
 . A key component of this CSR is the `pmpnum` WARL field, which defines the starting index for delegation.
 All PMP entries with an index equal to or greater than `pmpnum` are delegated as SPMP entries.
-. If a write to `pmpnum` specifies a value exceeding the number of physically implemented PMP entries, the field subsequently reads back the total count of implemented entries.
-. Setting `pmpnum` to zero delegates all PMP entries to SPMP, while setting it to the total number of entries delegates none.
-. By default, unless hardwired, `pmpnum` resets to the total number of implemented PMP entries.
+. If a write to `pmpnum` specifies a value exceeding the number of writable PMP entries, the field subsequently reads back the total count of writable entries. In such a case, no SPMP entries are delegated.
+. Setting `pmpnum` to zero delegates all writable PMP entries to SPMP, while setting it to the total number of writable entries delegates none.
+. By default, unless hardwired, `pmpnum` resets to the total number of writable PMP entries.
 . If no entries are delegated to SPMP, the `Sspmp` extension is effectively disabled, and any attempt to access SPMP-related registers results in reads returning zero, and writes being ignored.
 
 
