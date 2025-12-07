@@ -59,6 +59,13 @@ All writable SPMP entries should implement the same number of address bits.
 Since not all physical address bits must be implemented, the SPMP address registers are considered WARL, with exceptions defined by granularity rules.
 Refer to the {privspec}, Section 3.7: Physical Memory Protection, Address Matching.
 
+[NOTE]
+====
+If `spmpaddr` is narrower than the number of supported physical address bits, some physical addresses may not be representable in an SPMP entry.
+Since S-mode cannot access any memory unless an SPMP entry permits it, any memory region that cannot be addressed by an SPMP entry is inaccessible to S-mode.
+====
+
+
 
 [[spmpaddr-rv32]]
 .SPMP address register format, RV32.
@@ -79,7 +86,7 @@ Permission rules and their encodings are detailed in <<encoding>>.
 Setting the L bit locks the SPMP entry, regardless of the A field's setting (even OFF).
 Attempts to write to locked `spmpcfg[i]` and `spmpaddr[i]` registers using the `siselect` CSR are ignored.
 If a locked entry has `spmpcfg[i].A` set to TOR, writes to the preceding `spmpaddr[i-1]` via `siselect` are also ignored.
-. If locking is not a required feature, an implementation can hardwire the L bit to 0.
+// . If locking is not a required feature, an implementation can hardwire the L bit to 0.
 . For any rule not designated as a `Shared-Region`, the U bit determines if it is `U-mode` (when set) or `S-mode-only` (when clear), as explained in <<encoding>>.
 . The SHARED bit identifies a rule as a `Shared-Region` rule.
 
