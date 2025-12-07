@@ -16,9 +16,12 @@ When an entry `i` is locked, as indicated by `spmpcfg[i].L == 1`, its correspond
 // for S-mode.
 // This restriction does not apply to the execution environment, which retains write access.
 
-All accesses to the `sspmpswitch` CSR must adhere to the protocols defined in <<access_method>>.
+// All accesses to the `sspmpswitch` CSR must adhere to the protocols defined in <<access_method>>.
 In an implementation featuring 64 PMP entries with 48 delegated to the supervisor level, the bits `sspmpswitch[0..47]` control their respective SPMP entries `[0..47]`.
 Any attempt to write to the upper bits of the register, `sspmpswitch[48..63]` are ignored.
+
+Writes to the `sspmpswitch` CSR are not ordered with respect to subsequent memory accesses.
+To enforce ordering, software must execute an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0`.
 
 
 If the `Sspmpsw` extension is present and an entry's addressing mode is set to TOR via `spmpcfg[i].A`, that entry matches any address asciimath:[y] that satisfies the following conditions:
