@@ -57,6 +57,12 @@ Its lower 8 bits are an alias for the 8-bit field in the corresponding M-mode PM
 For instance, if `PMP[7]` is locked, any attempt to write a value less than 8 to `pmpnum` is ignored, and the field retains its prior value.
 . The `pmpnum` value can be set to override locked SPMP entries. For example, if `SPMP[0]` is locked, M-mode software can still increment `pmpnum`.
 
+[NOTE]
+====
+Changing `pmpnum` at runtime carries the side effect of inheriting configuration values from previous PMP or SPMP roles.
+Consequently, before writing a new value to `pmpnum`, the M-mode software should perform sanity checks, including storing and clearing the fields of the affected configuration registers.
+====
+
 
 [[m_mode_indirect_access]]
 === The Access Methods for SPMP CSRs in M-mode
