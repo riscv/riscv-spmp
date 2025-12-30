@@ -70,7 +70,7 @@ Each `vsiselect` represents an access to the corresponding SPMP virtual supervis
 |`vsiselect#63`|`vsireg` -> `vspmpaddr[63]`, `vsireg2` -> `vspmpcfg[63]`
 |===
 
-Both M and HS-mode accesses via `vsireg2` CSRs, and VS-mode accesses via `sireg2` CSRs to the vSPMP `vspmpcfg` resgisters, can set `vspmpcfg[i].L` to lock a vSPMP entry. When `vspmpcfg[i].L` is set, writes to that entry are ignored. Only M and HS-mode writes via `vsireg2` can reset `vspmpcfg[i].L`.
+Both M and HS-mode accesses via `vsireg2` CSRs, and VS-mode accesses via `sireg2` CSRs to the vSPMP `vspmpcfg` registers, can set `vspmpcfg[i].L` to lock a vSPMP entry. When `vspmpcfg[i].L` is set, writes to that entry are ignored. Only M and HS-mode writes via `vsireg2` can reset `vspmpcfg[i].L`.
 
 == "Sshspmpdeleg" Extension for Sharing Hardware Resources between hSPMP and vSPMP
 
