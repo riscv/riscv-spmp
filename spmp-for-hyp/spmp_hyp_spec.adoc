@@ -1,26 +1,3 @@
-== "Sshspmpsw" Extension for Optimizing Context Switching of hSPMP Entries
-
-=== Extension Dependencies
-
-. The `Sshspmpsw` is dependent on `Sshspmp` and `Sspmpsw`.
-
-=== Optimization for Context Switching of hSPMP Entries
-
-The `Sshspmpsw` introduces additional CSRs:
-
-* In RV64: one 64-bit WARL CSR called `hspmpswitch` is added.
-* In RV32: in addition to `hspmpswitch`, a 32-bit WARL CSR called `hspmpswitchh` is added, which is an alias of the upper half of `hspmpswitch`.
-
-When V = 1, these registers replace the function of `spmpswitch`. Specifically, when V = 1, an hSPMP entry is considered active only if both its `spmpcfg[i].A` is set and the corresponding bit in `hspmpswitch` is set. When V = 0, the `hspmpswitch` register has no effect, and the baseline SPMP behavior applies as defined by `spmpswitch` alone.
-
-When an entry `i` is locked, as indicated by `spmpcfg[i].L == 1`, bit `i` in `hspmpswitch` becomes read-only.
-
-[NOTE]
-====
-The rationale for providing a separate `hspmpswitch` register, rather than reusing `spmpswitch`, is that HS/U and VS/VU contexts conceptually occupy distinct address spaces, not merely different permission domains. This mirrors the baseline Hypervisor extension for page-based translation, where HS/U accesses use the page tables pointed to by `satp`, while VS/VU accesses are translated through a separate set of page tables defined by `hgatp`.
-Similarly, `spmpswitch` governs SPMP entries for the hypervisor’s own address space, while `hspmpswitch` controls the guest address space enforced by hSPMP. This separation allows the hypervisor to manage its own and guest memory protection configurations independently.
-====
-
 == "Ssvspmp" Extension for Virtual SPMP
 
 === Extension Dependencies
@@ -49,11 +26,6 @@ When `vsatp.MODE` is not set to `Bare`, but `hgatp.MODE` is, the hSPMP check log
 
 The vSPMP is configured through a set of virtual supervisor indirect-access registers, which are architectural replicas of the standard SPMP registers. These include `vspmpaddr0`–`vspmpaddr63`, `vspmpcfg0`–`vspmpcfg63`. See <<vspmp_access_method>> for details on how these registers are accessed.
 
-Furthermore, if `Sspmpsw` is implemented, the vSPMP must implement additional virtual supervisor CSRs which control the active vSPMP entries, analogously to `sspmpswitch` for the SPMP:
-
-* In RV64: one 64-bit WARL CSR called `vspmpswitch` is added.
-* In RV32: in addition to `vspmpswitch`, a 32-bit WARL CSR called `vspmpswitchh` is added, which is an alias of the upper half of `vspmpswitch`.
-
 [[vspmp_access_method]]
 === Access Method for vSPMP registers
 
@@ -71,6 +43,16 @@ Each `vsiselect` represents an access to the corresponding SPMP virtual supervis
 |===
 
 Both M and HS-mode accesses via `vsireg2` CSRs, and VS-mode accesses via `sireg2` CSRs to the vSPMP `vspmpcfg` registers, can set `vspmpcfg[i].L` to lock a vSPMP entry. When `vspmpcfg[i].L` is set, writes to that entry are ignored. Only M and HS-mode writes via `vsireg2` can reset `vspmpcfg[i].L`.
+
+== "Ssvspmpmask" Extension for Optimizing Context Switching of SPMP Entries
+
+The `Ssvspmpmask` is an optional extension that provides a mechanism to enchance vSPMP context switches. It replicates the functionality provided by `Sspmpmask` for optimizing SPMP context switches for the vSPMP.
+For this introduces new virtual CSRs that control the activation of vSPMP entries:
+
+* For RV64 architectures, it introduces a 64-bit WARL virtual CSR, `vspmpmask`.
+* For RV32 architectures, it introduces an additional 32-bit WARL CSR, `vspmpmaskh`, which serves as an alias for the upper 32 bits of the `vspmpmask` register.
+
+This extension is mandatory if `Sspmpmask` is implemented.
 
 == "Sshspmpdeleg" Extension for Sharing Hardware Resources between hSPMP and vSPMP
 
@@ -106,6 +88,8 @@ For instance, given an implementation with a total of 48 PMP entries, if `mpmpde
 `PMP entry[32]` to `PMP entry[47]` would map to `vSPMP[0]` to `vSPMP[15]`.
 A read of an out-of-index vSPMP entry (in the previous example, starting with `vSPMP[16]`) will return 0, and a write to such a vSPMP entry will be ignored.
 
+Indirect accesses to vSPMP CSRs are not ordered with respect to each other or with subsequent memory accesses. To enforce ordering for subsequent accesses whose effective privilege mode is VS or VU, upon access to vSPMP CSRs, M- and HS-mode software must execute an HFENCE.VVMA instruction with `rs1=x0` and `rs2=x0`.
+
 [NOTE]
 ====
 If `mpmpdeleg.pmpnum` + `hspmpdeleg.pmpnum` is configured such that more than 64 entries are delegated to vSPMP, only the lowest 64 delegated entries are addressable through the vSPMP CSRs. Any additional delegated entries are architecturally inaccessible and have no effect on memory protection.
@@ -113,3 +97,26 @@ For example, if the number of implemented PMP entries is 128, `mpmpdeleg.pmpnum`
 ====
 
 This extension is mandatory if `Ssvspmp` is implemented.
+
+== "Sshspmpmask" Extension for Optimizing Context Switching of hSPMP Entries
+
+=== Extension Dependencies
+
+. The `Sshspmpmask` is dependent on `Sshspmp` and `Sspmpsw`.
+
+=== Optimization for Hypervisor/Guest Context Switching of SPMP Separation
+
+The `Sshspmpmask` introduces additional CSRs:
+
+* In RV64: one 64-bit WARL CSR called `hspmpmask` is added.
+* In RV32: in addition to `hspmpmask`, a 32-bit WARL CSR called `hspmpmaskh` is added, which is an alias of the upper half of `hspmpmask`.
+
+When V = 1, these registers replace the function of `spmpswitch`. Specifically, when V = 1, an hSPMP entry is considered active only if both its `spmpcfg[i].A` is set and the corresponding bit in `hspmpmask` is set. When V = 0, the `hspmpmask` register has no effect, and the baseline SPMP behavior applies as defined by `spmpswitch` alone.
+
+When an entry `i` is locked, as indicated by `spmpcfg[i].L == 1`, bit `i` in `hspmpmask` becomes read-only.
+
+[NOTE]
+====
+The rationale for providing a separate `hspmpmask` register, rather than reusing `spmpmask`, is that HS/U and VS/VU contexts conceptually occupy distinct address spaces, not merely different permission domains. This mirrors the baseline Hypervisor extension for page-based translation, where HS/U accesses use the page tables pointed to by `satp`, while VS/VU accesses are translated through a separate set of page tables defined by `hgatp`.
+Similarly, `spmpswitch` governs SPMP entries for the hypervisor’s own address space, while `hspmpmask` controls the guest address space enforced by hSPMP. This separation allows the hypervisor to manage its own and guest memory protection configurations independently.
+====
