@@ -13,4 +13,5 @@ The proposed specifications (non-ratified, under discussion) has been contribute
 * Kajetan Nürnberger
 * Harry Wagstaff
 * Ruud Derwig
-* Lupe Carlos IV    
+* Lupe Carlos IV
+* Radim Krčmář

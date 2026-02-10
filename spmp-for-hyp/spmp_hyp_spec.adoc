@@ -2,7 +2,7 @@
 
 === Extension Dependencies
 
-. The `Ssvspmp` is dependent on `Ss1p13` and the Hypervisor Extension, with the following requirement relaxations:
+. The `Ssvspmp` is dependent on the latest versions of Supervisor-Level ISA specification (Version 1.13), and Hypervisor Extension (Version 1.0) at the time of writing, with the following requirement relaxations:
     * The only mandatory mode in `vsatp` is `Bare`.
 
 . The `Ssvspmp` is dependent on the "Sspmp" Extension for S-level Physical Memory Protection (SPMP).
@@ -42,7 +42,7 @@ Each `vsiselect` value selects one vSPMP entry. Indirect accesses via `vsireg` a
 |`vsiselect#63`|`vsireg` -> `vspmpaddr[63]`, `vsireg2` -> `vspmpcfg[63]`
 |===
 
-Both M and HS-mode accesses via `vsireg2` CSRs, and VS-mode accesses via `sireg2` CSRs to the vSPMP `vspmpcfg` registers, can set `vspmpcfg[i].L` to lock a vSPMP entry. When `vspmpcfg[i].L` is set, writes to that entry are ignored. Only M and HS-mode writes via `vsireg2` can reset `vspmpcfg[i].L`.
+Both M and HS-mode accesses via `vsireg2` CSRs, and VS-mode accesses via `sireg2` CSRs to the vSPMP `vspmpcfg` registers, can set `vspmpcfg[i].L` to lock a vSPMP entry. When V = 1, and `vspmpcfg[i].L` is set, writes to that entry are ignored. Only M and HS-mode writes via `vsireg2` can reset `vspmpcfg[i].L`.
 
 == "Ssvspmpmask" Extension for Optimizing Context Switching of vSPMP Entries
 
@@ -68,8 +68,13 @@ This extension is mandatory if `Sspmpmask` is implemented.
 
 === Resource Sharing between SPMP and vSPMP
 
-With this extension the hypervisor can delegate entries from SPMP to vSPMP. For this, it introduces a new WARL `hspmpdeleg` CSR with the same format and functionality of `mpmpdeleg`, but for delegating SPMP entries to vSPMP.
+With this extension the hypervisor can delegate entries from SPMP to vSPMP. For this, it introduces a new WARL HSXLEN-bit HS-mode CSR named `hspmpdeleg`, whose layout is detailed in <<hspmpdeleg_format_rv64>>. This CSR with the same functionality of `mpmpdeleg`, but for delegating SPMP entries to vSPMP.
 Any PMP entry with an index greater than or equal to `mpmpdeleg.pmpnum` + `hspmpdeleg.pmpnum` is delegated to the vSPMP. For example, if the number of implemented PMP entries is 48, `mpmpdeleg.pmpnum` is set to 8, and `hspmpdeleg.pmpnum` is set to 16, PMP entries 24 to 47 are delegated to the vSPMP.
+
+
+[[hspmpdeleg_format_rv64]]
+.hspmpdeleg CSR format.
+include::images/bytefield/hspmpdeleg_format_rv64.adoc[]
 
 If  either `mpmpdeleg.pmpnum`  or `hspmpdeleg.pmpnum` is written with a value such that `mpmpdeleg.pmpnum` + `hspmpdeleg.pmpnum` is equal
 to or greater than the number of implemented PMP entries, `hspmpdeleg.pmpnum` will read back as the number of remaining SPMP entries. For example, if the number of implemented PMP entries is 32, `mpmpdeleg.pmpnum` is set to 16, and then `hspmpdeleg.pmpnum` is written a value of 32, the field will read back as 16. Or if initially,
@@ -86,6 +91,13 @@ If the number of implemented entries is greater than 64, unless hardwired, `mpmp
 ====
 The limit of 192 for implemented PMP entries stems from the fact that this is the maximum number of addressable entries: 64 addressable for the vSPMP, 64 for the SPMP, plus 64 for PMP. If more PMP entries were implemented, software would have no way to address and access such entries.
 ====
+
+[NOTE]
+====
+The vSPMP can by effectively disabled by setting `hspmpdeleg.pmpnum` to the maximum possible value. If, for example, 96 entries are implemented, and `mpmdeleg.pmpnum` is set to 32, the vSPMP is disabled by setting `hspmpdeleg.pmpnum` to 64. In the extreme case, when all 192 entries are implemented, and `mpmpdeleg.pmpnum` is set to zero,
+HS-mode can disable vSPMP by setting `hspmpdeleg.pmpnum` to 192.
+====
+
 
 *Addressing:*
 
