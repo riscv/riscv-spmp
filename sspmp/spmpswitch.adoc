@@ -1,42 +1,40 @@
-[[Sspmpsw_extension]]
-== "Sspmpsw" Extension for Optimizing Context Switching of SPMP Entries
+[[Sspmpen-extension]]
+== "Sspmpen" Extension for Optimizing Context Switching of SPMP Entries
 
 In RV64, a context switch for the SPMP mechanism involves updating as many as 64 address registers and configuration registers.
-The `Sspmpsw` extension, introduced in this chapter, is an optional feature designed to enhance the performance of SPMP context switches.
+The `Sspmpen` extension, introduced in this chapter, is an optional feature designed to enhance the performance of SPMP context switches.
 
-* For RV64 architectures, it introduces a 64-bit WARL CSR, `sspmpswitch`.
-* For RV32 architectures, it introduces an additional 32-bit WARL CSR, `sspmpswitchh`, which serves as an alias for the upper 32 bits of the `sspmpswitch` register.
-
-
-The activation of each SPMP entry is governed by its corresponding bit in the `sspmpswitch` register.
-An SPMP entry `i` is considered active only when both the `sspmpswitch[i]` bit is set and the `spmpcfg[i].A` field is enabled.
-The formal condition for this activation is `sspmpswitch[i] & spmpcfg[i].A != 0`.
-
-When an entry `i` is locked, as indicated by `spmpcfg[i].L == 1`, its corresponding `sspmpswitch[i]` bit becomes read-only.
-// for S-mode.
-// This restriction does not apply to the execution environment, which retains write access.
-
-// All accesses to the `sspmpswitch` CSR must adhere to the protocols defined in <<access_method>>.
-In an implementation featuring 64 PMP entries with 48 delegated to the supervisor level, the bits `sspmpswitch[0..47]` control their respective SPMP entries `[0..47]`.
-Any attempt to write to the upper bits of the register, `sspmpswitch[48..63]` are ignored.
-
-Writes to the `sspmpswitch` CSR are not ordered with respect to subsequent memory accesses.
-To enforce ordering, software must execute an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0`.
+* For RV64 architectures, it introduces a 64-bit WARL CSR, `spmpen`.
+* For RV32 architectures, it introduces an additional 32-bit WARL CSR, `spmpenh`, which serves as an alias for the upper 32 bits of the `spmpen` register.
 
 
-If the `Sspmpsw` extension is present and an entry's addressing mode is set to TOR via `spmpcfg[i].A`, that entry matches any address asciimath:[y] that satisfies the following conditions:
+The activation of each SPMP entry is governed by its corresponding bit in the `spmpen` register.
+An SPMP entry `i` is considered active only when both the `spmpen[i]` bit is set and the `spmpcfg[i].A` field is enabled.
+The formal condition for this activation is `spmpen[i] & spmpcfg[i].A != 0`.
+
+When an entry `i` is locked, as indicated by `spmpcfg[i].L == 1`, its corresponding `spmpen[i]` bit becomes read-only.
+
+In an implementation featuring 64 PMP entries with 48 delegated to the supervisor level, the bits `spmpen[0..47]` control their respective SPMP entries `[0..47]`.
+Any attempt to write to the upper bits of the register, `spmpen[48..63]` are ignored.
+
+Writes to the `spmpen` CSR are not ordered with respect to subsequent
+memory accesses.
+To enforce ordering, software must execute memory-management fence
+instructions as described in <<access-method>>.
+
+
+If the `Sspmpen` extension is present and an entry's addressing mode is set to TOR via `spmpcfg[i].A`, that entry matches any address asciimath:[y] that satisfies the following conditions:
 
 . `spmpaddr[i-1]` asciimath:[\le y <] `spmpaddr[i]`.
-. This address matching is independent of the configuration or activation state of the preceding entry, i.e., `spmpcfg[i-1]` and `sspmpswitch[i-1]`.
+. This address matching is independent of the configuration or activation state of the preceding entry, i.e., `spmpcfg[i-1]` and `spmpen[i-1]`.
 
 
 
 [NOTE]
 ====
-The `sspmpswitch` register offers significant benefits for context switch optimization in various scenarios, including the following:
+The `spmpen` register offers significant benefits for context switch optimization in various scenarios, including the following:
 
-. When a hart possesses enough SPMP entries for all its concurrent tasks, memory regions for each task can be statically assigned to a dedicated subset of these entries. Under this configuration, an SPMP context switch is streamlined into a single write operation to `sspmpswitch` (or two writes on RV32 systems: `sspmpswitch` and `sspmpswitchh`). This operation simultaneously deactivates the SPMP entries of the outgoing task while activating those of the incoming task.
+. When a hart possesses enough SPMP entries for all its concurrent tasks, memory regions for each task can be statically assigned to a dedicated subset of these entries. Under this configuration, an SPMP context switch is streamlined into a single write operation to `spmpen` (or two writes on RV32 systems: `spmpen` and `spmpenh`). This operation simultaneously deactivates the SPMP entries of the outgoing task while activating those of the incoming task.
 +
 . A subset of SPMP entries may be reserved for tasks with strict timing or latency requirements, such as interrupt service routines. This approach guarantees minimal overhead when activating these critical contexts, thereby eliminating the need to dynamically reconfigure SPMP entries during the switch.
 ====
-
