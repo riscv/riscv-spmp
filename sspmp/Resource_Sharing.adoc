@@ -60,7 +60,7 @@ For instance, if `PMP[7]` is locked, any attempt to write a value less than 8 to
 [NOTE]
 ====
 Changing `pmpnum` at runtime carries the side effect of inheriting configuration values from previous PMP or SPMP roles.
-Consequently, before writing a new value to `pmpnum`, the M-mode software should perform sanity checks, including storing and clearing the fields of the affected configuration registers.
+Consequently, before writing a new value to `pmpnum`, the M-mode software should perform confidence checks, including storing and clearing the fields of the affected configuration registers.
 ====
 
 
