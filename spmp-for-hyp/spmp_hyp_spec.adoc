@@ -2,8 +2,7 @@
 
 === Extension Dependencies
 
-. The `Ssvspmp` is dependent on the latest versions of Supervisor-Level ISA specification (Version 1.13), and Hypervisor Extension (Version 1.0) at the time of writing, with the following requirement relaxations:
-    * The only mandatory mode in `vsatp` is `Bare`.
+. The `Ssvspmp` is dependent on the latest versions of Supervisor-Level ISA specification (Version 1.13), and Shbare (Version 1.0) at the time of writing.
 
 . The `Ssvspmp` is dependent on the "Sspmp" Extension for S-level Physical Memory Protection (SPMP).
 
@@ -29,7 +28,7 @@ The vSPMP is configured through a set of virtual supervisor indirect-access regi
 [[vspmp_access_method]]
 === Access Method for vSPMP registers
 
-Consistent with the behavior defined in the Hypervisor and Indirect CSR Access extensions, vSPMP registers can be accessed from M and HS-modes via the `vsiselect`/`vsiregX` and accesses to the original SPMP registers from VS-mode via `siselect`/`siregX` CSRs are transparently redirected to the corresponding virtual supervisor vSPMP registers. 
+Consistent with the behavior defined in Shbare and Sscsrind extensions, vSPMP registers can be accessed from M and HS-modes via the `vsiselect`/`vsiregX` and accesses to the original SPMP registers from VS-mode via `siselect`/`siregX` CSRs are transparently redirected to the corresponding virtual supervisor vSPMP registers. 
 
 Each `vsiselect` value selects one vSPMP entry. Indirect accesses via `vsireg` and `vsireg2` access that entry’s `vspmpaddr` and `vspmpcfg`, respectively. `vsireg3`, `vsireg4`, `vsireg5`, and `vsireg6` are read-only 0.
 
