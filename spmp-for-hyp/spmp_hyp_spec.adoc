@@ -93,7 +93,7 @@ The limit of 192 for implemented PMP entries stems from the fact that this is th
 
 [NOTE]
 ====
-The vSPMP can by effectively disabled by setting `hspmpdeleg.pmpnum` to the maximum possible value. If, for example, 96 entries are implemented, and `mpmdeleg.pmpnum` is set to 32, the vSPMP is disabled by setting `hspmpdeleg.pmpnum` to 64. In the extreme case, when all 192 entries are implemented, and `mpmpdeleg.pmpnum` is set to zero,
+The vSPMP can be effectively disabled by setting `hspmpdeleg.pmpnum` to the maximum possible value. If, for example, 96 entries are implemented, and `mpmdeleg.pmpnum` is set to 32, the vSPMP is disabled by setting `hspmpdeleg.pmpnum` to 64. In the extreme case, when all 192 entries are implemented, and `mpmpdeleg.pmpnum` is set to zero,
 HS-mode can disable vSPMP by setting `hspmpdeleg.pmpnum` to 192.
 ====
 
