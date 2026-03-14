@@ -43,6 +43,8 @@ Each `vsiselect` value selects one vSPMP entry. Indirect accesses via `vsireg` a
 
 Both M and HS-mode accesses via `vsireg2` CSRs, and VS-mode accesses via `sireg2` CSRs to the vSPMP `vspmpcfg` registers, can set `vspmpcfg[i].L` to lock a vSPMP entry. When V = 1, and `vspmpcfg[i].L` is set, writes to that entry are ignored. Only M and HS-mode writes via `vsireg2` can reset `vspmpcfg[i].L`.
 
+Indirect accesses to vSPMP CSRs are not ordered with respect to each other or with subsequent memory accesses. To enforce ordering for subsequent accesses whose effective privilege mode is VS or VU, software must execute memory memory-management fence instructions. When V = 1, a `SFENCE.VMA`instruction is required as defined in the base `Sspmp` extension. When V = 0, M or HS mode software must execute an `HFENCE.VVMA` instruction with rs1=x0 and rs2=x0, which synchronizes subsequent memory accesses with all preceding vSPMP CSR writes.
+
 == "Ssvspmpen" Extension for Optimizing Context Switching of vSPMP Entries
 
 === Extension Dependencies
