@@ -1,0 +1,19 @@
+// Because this diagram only has 16 columns, a lot of the font size directives
+// (typically ":font-size 24" throughout) from the other bytefields are not appropriate here.
+// To maintain the same look and feel, it might be worth reformatting this as a 32-column diagram.
+[bytefield]
+----
+(defattrs :plain [:plain {:font-family "M+ 1p Fallback" :font-size 20}])
+(def row-height 30)
+(def row-header-fn nil)
+(def boxes-per-row 32)
+(draw-column-headers {:height 20 :font-size 20 :labels (reverse ["0" "" "1" "" "2" "" "" "" "" "" "" "" "6" "" "7" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "31"])})
+
+(draw-box (text "Reserved (WPRI)" {:font-size 22}) {:span 18})
+(draw-box (text "pmpnum (WARL)" {:font-size 22}) {:span 10})
+(draw-box (text "0 (WARL)" {:font-size 22}) {:span 4})
+
+(draw-box (text "25" {:font-size 20}) {:span 18 :borders {}})
+(draw-box (text "5" {:font-size 20}) {:span 10 :borders {}})
+(draw-box (text "2" {:font-size 20}) {:span 4 :borders {}})
+----
