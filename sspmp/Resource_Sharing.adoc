@@ -5,6 +5,7 @@ The similar architecture of PMP and SPMP registers, including their shared addre
 This chapter introduces the `Smpmpdeleg` extension, a mechanism that allows hardware resources to be dynamically allocated between PMP and SPMP.
 
 *This extension is mandatory for implementations that support Sspmp in conjunction with M-mode (i.e., `Sm1p13`).*
+The `Smcsrind` extension for indirect CSR access must be implemented.
 To streamline the specification and reduce optional features, the `Smpmpdeleg` extension implements 64 PMP entries, but fewer can be writable; any non-writable entries behave as read-only zero.
 
 
@@ -15,12 +16,12 @@ To streamline the specification and reduce optional features, the `Smpmpdeleg` e
 The `Smpmpdeleg` extension facilitates the delegation of PMP entries for use by S-level, thereby creating S-level PMP (SPMP) entries.
 This delegation is managed by an MXLEN-bit M-mode CSR named `mpmpdeleg`, whose layout is detailed in <<mpmpdeleg-format-rv64>>.
 
-. A key component of this CSR is the `pmpnum` WARL field, which defines the starting index for delegation.
-All PMP entries with an index equal to or greater than `pmpnum` are delegated as SPMP entries.
+. [#norm:csrfld:mpmpdeleg:pmpnum:field]#A key component of this CSR is the `pmpnum` WARL field, which defines the starting index for delegation.
+All PMP entries with an index equal to or greater than `pmpnum` are delegated as SPMP entries.#
 . If a write to `pmpnum` specifies a value exceeding the number of writable PMP entries, the field subsequently reads back the total count of writable entries. In such a case, no SPMP entries are delegated.
-. Setting `pmpnum` to zero delegates all writable PMP entries to SPMP, while setting it to the total number of writable entries delegates none.
+. [#norm:csrfld:mpmpdeleg:pmpnum:zero_delegates_all]#Setting `pmpnum` to zero delegates all writable PMP entries to SPMP, while setting it to the total number of writable entries delegates none.#
 . By default, unless hardwired, `pmpnum` resets to the total number of writable PMP entries.
-. If no entries are delegated to SPMP, the `Sspmp` extension is effectively disabled, and any attempt to access SPMP-related registers results in reads returning zero, and writes being ignored.
+. [#norm:csrfld:mpmpdeleg:pmpnum:no_delegation_disables]#If no entries are delegated to SPMP, the `Sspmp` extension is effectively disabled, and any attempt to access SPMP-related registers results in reads returning zero, and writes being ignored.#
 
 
 [[mpmpdeleg-format-rv64]]
@@ -53,8 +54,8 @@ Its lower 8 bits are an alias for the 8-bit field in the corresponding M-mode PM
 *Reconfiguration of delegated entries:*
 
 . M-mode software can dynamically adjust the allocation between PMP and SPMP by writing to the `mpmpdeleg` CSR.
-. The `pmpnum` value cannot be set to an index that is less than or equal to that of any locked PMP entry.
-For instance, if `PMP[7]` is locked, any attempt to write a value less than 8 to `pmpnum` is ignored, and the field retains its prior value.
+. [#norm:csrfld:mpmpdeleg:pmpnum:locked_pmp_constraint]#The `pmpnum` value cannot be set to an index that is less than or equal to that of any locked PMP entry.
+For instance, if `PMP[7]` is locked, any attempt to write a value less than 8 to `pmpnum` is ignored, and the field retains its prior value.#
 . The `pmpnum` value can be set to override locked SPMP entries. For example, if `SPMP[0]` is locked, M-mode software can still increment `pmpnum`.
 
 [NOTE]
@@ -70,10 +71,10 @@ M-mode employs different methods to access PMP and SPMP entries.
 PMP entries are accessed directly through their dedicated CSRs (i.e., `pmpcfg` and `pmpaddr`).
 Delegated SPMP entries, however, are accessed indirectly using the `xiselect` CSR (i.e., `siselect` and `miselect`).
 
-For these indirect accesses, `miselect` selects the target SPMP entry, `mireg` accesses its `spmpaddr` register, and `mireg2` accesses its `spmpcfg` register.
+[#norm:csr:miselect:spmp_access]#For these indirect accesses, `miselect` selects the target SPMP entry, `mireg` accesses its `spmpaddr` register, and `mireg2` accesses its `spmpcfg` register.#
 The `mireg3` through `mireg6` are reserved.
 
-The lock bit (`spmpcfg[i].L`) of an SPMP entry can only be cleared by M-mode through an indirect access using `miselect`.
+[#norm:csrfld:spmpcfg:L:clear_via_miselect]#The lock bit (`spmpcfg[i].L`) of an SPMP entry can only be cleared by M-mode through an indirect access using `miselect`.#
 
 The view provided by `miselect` is identical to that of `siselect` (see <<access-method>>).
 For instance, if 48 out of 64 entries are delegated, both S-mode (via `siselect` indices 0-47) and M-mode (via `siselect` or `miselect` indices 0-47) can access `SPMP[0..47]`.
@@ -91,6 +92,6 @@ Any access attempt by either mode to an index outside this range (i.e., `i >= 48
 
 
 *Memory access in M-mode:*
-If the effective privilege mode of the memory access is M, the access is `allowed` regardless of the SPMP permissions.
+[#norm:ext:Sspmp:mmode_mem_bypass]#If the effective privilege mode of the memory access is M, the access is `allowed` regardless of the SPMP permissions.#
 
 If the Shbare extension is implemented in conjunction with `Sspmp`, then when V=1 and hgatp.MODE=Bare, the Hypervisor Virtual Machine Load and Store instructions (HLV, HLVX, HSV) executed from M-mode are subject to SPMP checks.

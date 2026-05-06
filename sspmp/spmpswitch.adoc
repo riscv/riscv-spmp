@@ -4,15 +4,15 @@
 In RV64, a context switch for the SPMP mechanism involves updating as many as 64 address registers and configuration registers.
 The `Sspmpen` extension, introduced in this chapter, is an optional feature designed to enhance the performance of SPMP context switches.
 
-* For RV64 architectures, it introduces a 64-bit WARL CSR, `spmpen`.
-* For RV32 architectures, it introduces an additional 32-bit WARL CSR, `spmpenh`, which serves as an alias for the upper 32 bits of the `spmpen` register.
+* [#norm:ext:Sspmpen:spmpen_readwrite]#For RV64 architectures, it introduces a 64-bit WARL CSR, `spmpen`.#
+* [#norm:ext:Sspmpen:spmpenh_alias]#For RV32 architectures, it introduces an additional 32-bit WARL CSR, `spmpenh`, which serves as an alias for the upper 32 bits of the `spmpen` register.#
 
 
 The activation of each SPMP entry is governed by its corresponding bit in the `spmpen` register.
 An SPMP entry `i` is considered active only when both the `spmpen[i]` bit is set and the `spmpcfg[i].A` field is enabled.
-The formal condition for this activation is `spmpen[i] & spmpcfg[i].A != 0`.
+[#norm:ext:Sspmpen:activation_condition]#The formal condition for this activation is `spmpen[i] & spmpcfg[i].A != 0`.#
 
-When an entry `i` is locked, as indicated by `spmpcfg[i].L == 1`, its corresponding `spmpen[i]` bit becomes read-only.
+[#norm:ext:Sspmpen:locked_readonly]#When an entry `i` is locked, as indicated by `spmpcfg[i].L == 1`, its corresponding `spmpen[i]` bit becomes read-only.#
 
 In an implementation featuring 64 PMP entries with 48 delegated to the supervisor level, the bits `spmpen[0..47]` control their respective SPMP entries `[0..47]`.
 Any attempt to write to the upper bits of the register, `spmpen[48..63]` are ignored.
