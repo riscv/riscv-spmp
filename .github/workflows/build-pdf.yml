@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      NAME: example-spec
+      NAME: rv-spmp-spec
       APT_PACKAGES_FILE: ${{ github.workspace }}/sspmp/dependencies/apt_packages.txt
       BUNDLE_GEMFILE: ${{ github.workspace }}/sspmp/dependencies/Gemfile
       BUNDLE_BIN: ${{ github.workspace }}/bin
@@ -47,7 +47,7 @@ jobs:
     - name: Install Ubuntu packages
       run: |
         sudo apt-get update
-        grep -vE '^#' ${APT_PACKAGES_FILE} | xargs sudo apt-get install --yes
+        grep -vE '^#' ${APT_PACKAGES_FILE} | xargs sudo apt-get install --yes --no-install-recommends
     # Ruby for asciidoctor
     - name: Setup Ruby and Gemfile content
       uses: ruby/setup-ruby@v1
