@@ -26,10 +26,10 @@ jobs:
 
     env:
       NAME: example-spec
-      APT_PACKAGES_FILE: ${{ github.workspace }}/dependencies/apt_packages.txt
+      APT_PACKAGES_FILE: ${{ github.workspace }}/sspmp/dependencies/apt_packages.txt
       BUNDLE_GEMFILE: ${{ github.workspace }}/sspmp/dependencies/Gemfile
       BUNDLE_BIN: ${{ github.workspace }}/bin
-      NPM_PACKAGE_FOLDER: ${{ github.workspace }}/dependencies
+      NPM_PACKAGE_FOLDER: ${{ github.workspace }}/sspmp/dependencies
     outputs:
       name: ${{ steps.step1.outputs.name }}
       pdf-name: ${{ steps.step2.outputs.pdf-name }}
