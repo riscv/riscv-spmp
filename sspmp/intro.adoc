@@ -1,10 +1,14 @@
 [[intro]]
 == Introduction
-This document introduces the RISC-V S-level Physical Memory Protection (SPMP) proposal.
-SPMP is designed to enforce memory isolation in environments where supervisor mode is implemented but virtual memory, managed by a Memory Management Unit (MMU), is not.
-Processors based on the RISC-V architecture are gaining significant traction in the burgeoning Internet of Things (IoT) and automotive sectors.
-In these domains, however, virtual memory is frequently avoided to comply with stringent constraints on system resources and execution latency.
-Consequently, in the absence of an MMU, effectively isolating S-mode operating systems (such as an RTOS) from U-mode applications presents a significant challenge.
-The SPMP extension adopts an architecture and programming model analogous to the existing Physical Memory Protection (PMP) standard.
-It equips an S-mode OS with the capability to guarantee secure processing and fault isolation for U-mode software.
-This protection is achieved by restricting the physical memory regions that U-mode software can access on a specific hart.
+This document introduces the RISC-V S-level Physical Memory Protection (SPMP) extension. 
+SPMP provides a mechanism for enforcing memory isolation between Supervisor mode (S-mode) and User mode (U-mode) software in systems that implement S-mode but do not use paged virtual memory and thus do not require a Memory Management Unit (MMU).
+
+The RISC-V Privileged Architecture provides Physical Memory Protection (PMP) to enable Machine mode (M-mode) software to control memory accesses by less-privileged modes. 
+However, in systems operating with `satp.MODE=Bare`, there is no standard mechanism that allows S-mode software to enforce memory isolation on U-mode software. 
+As a result, an operating system executing in S-mode cannot independently restrict the physical memory regions accessible to user applications.
+
+In such systems, software is often structured with platform firmware executing in M-mode and an operating system executing in S-mode.
+This arrangement reduces the amount of software executing with machine privilege while preserving a clear separation between platform and operating-system responsibilities.
+
+SPMP extends the PMP programming model to S-mode. 
+It enables supervisor software to define physical memory regions and associated access permissions for less-privileged software, thus providing memory isolation and fault containment for U-mode applications in systems where paging is not used.
