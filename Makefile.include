@@ -29,13 +29,9 @@ OUTPUT_HTML ?= $(DOC).html
 FORMATS := PDF HTML
 CONTIMG := riscvintl/riscv-docs-base-container-image:latest
 
-# If not specified, pick a useful default
+# If not specified, pick a useful default, like a subdirectory of the current directory.
 ifeq (,$(DESTDIR))
-ifneq (,$(wildcard /mnt/c/Users/$(shell whoami)/Downloads))
-DESTDIR := /mnt/c/Users/$(shell whoami)/Downloads/$(DOC)
-else
 DESTDIR := ${PWD}/build
-endif
 endif
 
 # Change these if you must;
@@ -74,7 +70,7 @@ CLEANCMD := docker run --rm \
 	-v $(DESTDIR):/outputs \
 	$(CONTIMG) /bin/sh -c \
 	$(DOCKER_QUOTE) \
-	rm -rf /outputs/* \
+	rm -rf /outputs/.asciidoctor /outputs/* \
 	$(DOCKER_QUOTE) && rmdir $(DESTDIR)
 DEPS ?= $(shell find ${PWD}/src -type f)
 

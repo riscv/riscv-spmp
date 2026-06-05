@@ -25,11 +25,11 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      NAME: example-spec
-      APT_PACKAGES_FILE: ${{ github.workspace }}/dependencies/apt_packages.txt
-      BUNDLE_GEMFILE: ${{ github.workspace }}/dependencies/Gemfile
+      NAME: rv-spmp-spec
+      APT_PACKAGES_FILE: ${{ github.workspace }}/sspmp/dependencies/apt_packages.txt
+      BUNDLE_GEMFILE: ${{ github.workspace }}/sspmp/dependencies/Gemfile
       BUNDLE_BIN: ${{ github.workspace }}/bin
-      NPM_PACKAGE_FOLDER: ${{ github.workspace }}/dependencies
+      NPM_PACKAGE_FOLDER: ${{ github.workspace }}/sspmp/dependencies
     outputs:
       name: ${{ steps.step1.outputs.name }}
       pdf-name: ${{ steps.step2.outputs.pdf-name }}
@@ -41,7 +41,7 @@ jobs:
       id: step2
       run: echo "::set-output name=pdf-name::$NAME.pdf"
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v6
       with:
         submodules: 'true'
     - name: Install Ubuntu packages
@@ -55,7 +55,7 @@ jobs:
         ruby-version: "2.6"
         bundler-cache: true
     # Node.js for wavedrom
-    - uses: actions/cache@v2
+    - uses: actions/cache@v4
       with:
         path: ~/.npm
         key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -72,7 +72,7 @@ jobs:
         PATH=${PATH}:${BUNDLE_BIN}:$(npm bin) \
         make
     - name: Archive PDF result
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v6
       with:
         name: ${{ env.NAME }}.pdf
         path: ${{ env.NAME }}.pdf
