@@ -14,7 +14,7 @@ To streamline the specification and reduce optional features, the `Smpmpdeleg` e
 === Resource Sharing between PMP and SPMP
 
 The `Smpmpdeleg` extension facilitates the delegation of PMP entries for use by S-level, thereby creating S-level PMP (SPMP) entries.
-This delegation is managed by an MXLEN-bit M-mode CSR named `mpmpdeleg`, whose layout is detailed in <<mpmpdeleg-format-rv64>>.
+This delegation is managed by an MXLEN-bit M-mode CSR named `mpmpdeleg` (CSR number 0x316), whose layout is detailed in <<mpmpdeleg-format-rv64>>.
 
 . [#norm:csrfld:mpmpdeleg:pmpnum:field]#A key component of this CSR is the `pmpnum` WARL field, which defines the starting index for delegation.
 All PMP entries with an index equal to or greater than `pmpnum` are delegated as SPMP entries.#
