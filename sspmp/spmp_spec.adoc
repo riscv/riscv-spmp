@@ -1,7 +1,7 @@
 [[S-level-physical-memory-protection]]
 == "Sspmp" Extension for S-level Physical Memory Protection (SPMP)
 
-The RISC-V S-level Physical Memory Protection (SPMP) mechanism provides per-hart control registers in supervisor mode.
+The RISC-V SPMP mechanism provides per-hart control registers in supervisor mode.
 These registers define physical memory access privileges—read, write, and execute—for discrete physical memory regions.
 
 A memory access is successful only when permission checks for both S-mode execution environment and SPMP pass.
