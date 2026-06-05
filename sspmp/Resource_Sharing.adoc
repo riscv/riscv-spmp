@@ -4,16 +4,16 @@
 The similar architecture of PMP and SPMP registers, including their shared address-matching logic, makes hardware reuse a practical approach for resource conservation.
 This chapter introduces the `Smpmpdeleg` extension, a mechanism that allows hardware resources to be dynamically allocated between PMP and SPMP.
 
-*This extension is mandatory for implementations that support Sspmp in conjunction with M-mode (i.e., `Sm1p13`).*
+*This extension is mandatory for implementations that support both `Sspmp` and `Sm1p13`.*
 The `Smcsrind` extension for indirect CSR access must be implemented.
-To streamline the specification and reduce optional features, the `Smpmpdeleg` extension implements 64 PMP entries, but fewer can be writable; any non-writable entries behave as read-only zero.
+For the purposes of this specification, `Smpmpdeleg` assumes an architectural space of 64 PMP entries, although fewer entries may be writable; any non-writable entries behave as read-only zero.
 
 
 
 [[pmp-entry-sharing]]
 === Resource Sharing between PMP and SPMP
 
-The `Smpmpdeleg` extension facilitates the delegation of PMP entries for use by S-level, thereby creating S-level PMP (SPMP) entries.
+The `Smpmpdeleg` extension facilitates the delegation of PMP entries for use by S-mode, thereby creating SPMP entries.
 This delegation is managed by an MXLEN-bit M-mode CSR named `mpmpdeleg` (CSR number 0x316), whose layout is detailed in <<mpmpdeleg-format-rv64>>.
 
 . [#norm:csrfld:mpmpdeleg:pmpnum:field]#A key component of this CSR is the `pmpnum` WARL field, which defines the starting index for delegation.

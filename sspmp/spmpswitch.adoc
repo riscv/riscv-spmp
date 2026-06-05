@@ -1,7 +1,7 @@
 [[Sspmpen-extension]]
 == "Sspmpen" Extension for Optimizing Context Switching of SPMP Entries
 
-In RV64, a context switch for the SPMP mechanism involves updating as many as 64 address registers and configuration registers.
+In RV64, a context switch for the SPMP mechanism involves updating up to 64 address registers and 64 configuration registers.
 The `Sspmpen` extension, introduced in this chapter, is an optional feature designed to enhance the performance of SPMP context switches.
 
 * [#norm:ext:Sspmpen:spmpen_readwrite]#For RV64 architectures, it introduces a 64-bit WARL CSR, `spmpen` (CSR number 0x183).#
