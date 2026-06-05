@@ -154,7 +154,7 @@ SPMP supports three distinct rule types: *S-mode-only*, *U-mode* and *Shared-Reg
 +
 . [#norm:ext:Sspmp:umode_rule_enforce]#A *U-mode* rule is always enforced for User mode accesses.# Its behavior for Supervisor mode accesses depends on the `sstatus.SUM` bit.
 +
-* [#norm:ext:Sspmp:umode_rule_sum_effect]#With `sstatus.SUM` set, the rule is enforced for Supervisor mode data accesses,# but [#norm:ext:Sspmp:umode_rule_enforceNoX]#execution permission is denied (termed *EnforceNoX* in <<spmpencode>>)#. This prevents the OS from executing the memory of an unprivileged process at all times.
+* [#norm:ext:Sspmp:umode_rule_sum_effect]#With `sstatus.SUM` set, the rule is enforced for Supervisor mode data accesses,# but [#norm:ext:Sspmp:umode_rule_enforceNoX]#execution permission is denied (termed *EnforceNoX* in <<spmpencode>>)#. This prevents the OS from executing code residing in memory assigned to an unprivileged process.
 +
 * [#norm:ext:Sspmp:umode_rule_sum_denied]#With `sstatus.SUM` clear, the rule is denied for any Supervisor mode access.# This prevents the OS from accessing the memory of an unprivileged process unless a specific code path is followed.
 +
@@ -198,7 +198,7 @@ The semantics of `sstatus.SUM` within SPMP are consistent with its definition in
 +
 . [#norm:ext:Sspmp:match_irrespective_perm_bits]#This matching is done irrespective of the SHARED, U, R, W, and X bits.#
 +
-. [#norm:ext:Sspmp:no_match_deny]#If the effective privilege mode of the access is S/U and no SPMP entry matches, but at least one SPMP entry is implemented, the access is `denied`.#
+. [#norm:ext:Sspmp:no_match_deny]#If the effective privilege mode of the access is S-mode or U-mode and no SPMP entry matches, but at least one SPMP entry is implemented, the access is `denied`.#
 +
 . Otherwise, each access is checked according to the permission bits in the matching SPMP entry. That access is allowed if it satisfies the permission checking with the encoding corresponding to the access type.
 
@@ -219,7 +219,7 @@ S-mode software can subsequently constrain these permissions by refining the SPM
 
 
 [[spmp-and-paging]]
-=== SPMP and Paging
+=== SPMP and Paged Virtual Memory
 [#norm:ext:Sspmp:paging_mutual_exclusion]#SPMP and paged virtual memory are mutually exclusive.#
 
 The following table dictates which isolation mechanism is active based on the satp configuration.
@@ -287,7 +287,7 @@ While `SFENCE.VMA` and `HFENCE.GVMA` instructions normally order preceding store
 A failed SPMP check triggers an exception whose type corresponds to the memory operation (load, store/AMO, or instruction fetch).
 Each fault type is assigned a distinct exception code.
 
-The `Sspmp` extension co-opts the existing page fault exception codes for SPMP violations, as page fault handling is typically already delegated to S-mode.
+The `Sspmp` extension co-opts the existing page fault exception codes for SPMP violations, as page fault exceptions are commonly delegated to S-mode.
 S-mode software (e.g., an OS) can differentiate between an SPMP fault and a standard page fault by querying the `satp.mode` field, given that SPMP and paging are mutually exclusive (see <<spmp-and-paging>>).
 
 It is important to note that a single instruction can result in multiple memory accesses that are not guaranteed to be atomic relative to each other.
