@@ -164,7 +164,7 @@ SPMP supports three distinct rule types: *S-mode-only*, *U-mode* and *Shared-Reg
 +
 . The R, W, and X bits collectively form a WARL field.
 +
-. The encoding [#norm:csrfld:spmpcfg:RWX:rwx_010_reserved]#`spmpcfg.RWX=010`#, [#norm:csrfld:spmpcfg:RWX:rwx_011_reserved]#`spmpcfg.RWX=011`#, and the combination `spmpcfg.SHARED == 1 and spmpcfg.U == 0` are all reserved for future standard use.
+. The encodings [#norm:csrfld:spmpcfg:RWX:rwx_010_reserved]#`spmpcfg.RWX=010`#, [#norm:csrfld:spmpcfg:RWX:rwx_011_reserved]#`spmpcfg.RWX=011`#, as well as the combination `spmpcfg.SHARED == 1 and spmpcfg.U == 0` are all reserved for future standard use.
 
 If the Shbare extension is implemented, when V=1 and hgatp.MODE=Bare, the permission encodings remain consistent with those when spmpcfg.U=1, but are applied to VS/VU rather than U-mode accesses.
 
