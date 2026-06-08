@@ -14,7 +14,7 @@ For the purposes of this specification, `Smpmpdeleg` assumes an architectural sp
 === Resource Sharing between PMP and SPMP
 
 The `Smpmpdeleg` extension facilitates the delegation of PMP entries for use by S-mode, thereby creating SPMP entries.
-This delegation is managed by an MXLEN-bit M-mode CSR named `mpmpdeleg`, whose layout is detailed in <<mpmpdeleg-format-rv64>>.
+This delegation is managed by an MXLEN-bit M-mode CSR named `mpmpdeleg` (CSR number 0x316), whose layout is detailed in <<mpmpdeleg-format-rv64>>.
 
 . [#norm:csrfld:mpmpdeleg:pmpnum:field]#A key component of this CSR is the `pmpnum` WARL field, which defines the starting index for delegation.
 All PMP entries with an index equal to or greater than `pmpnum` are delegated as SPMP entries.#
@@ -38,11 +38,11 @@ The `mpmpdeleg.pmpnum` field is a WARL field, which allows an implementation to 
 *Addressing:*
 
 Both PMP and SPMP entries are indexed starting from zero.
-For example, in an implementation with 64 total entries where `pmpnum` is configured to 16:
+For example, in an implementation with 64 total entries where `pmpnum` is configured to N (asciimath:[N \le 64]):
 
-. PMP entries 0 through 15 act as PMP (i.e., `PMP[0..15]`) and are accessible via standard PMP CSRs (i.e., `pmpcfg[0..3]` and `pmpaddr[0..15]` for RV32; `pmpcfg[0,2]` and `pmpaddr[0..15]` for RV64).
-. The remaining 48 entries are delegated as SPMP (i.e., `SPMP[0..47]`) and are indirectly accessed via `xiselect` (see <<access-method>> and <<m-mode-indirect-access>>).
-. Accesses to out-of-range indices, such as reading `PMP[16]` or writing to `SPMP[48]` in this scenario, are handled as follows: reads return zero, and writes are ignored.
+. PMP entries 0 through N-1 act as PMP (i.e., `PMP[0..N-1]`) and are accessible via standard PMP CSRs (e.g., `pmpcfg[0..3]` and `pmpaddr[0..15]` for RV32; `pmpcfg[0,2]` and `pmpaddr[0..15]` for RV64).
+. The remaining 64-N entries are delegated as SPMP (i.e., `SPMP[0..63-N]`) and are indirectly accessed via `xiselect` (see <<access-method>> and <<m-mode-indirect-access>>).
+. Accesses to out-of-range indices, such as reading `PMP[N]` or writing to `SPMP[64-N]` in this scenario, are handled as follows: reads return zero, and writes are ignored.
 
 
 *Configuration registers:*
@@ -57,6 +57,9 @@ Its lower 8 bits are an alias for the 8-bit field in the corresponding M-mode PM
 . [#norm:csrfld:mpmpdeleg:pmpnum:locked_pmp_constraint]#The `pmpnum` value cannot be set to an index that is less than or equal to that of any locked PMP entry.
 For instance, if `PMP[7]` is locked, any attempt to write a value less than 8 to `pmpnum` is ignored, and the field retains its prior value.#
 . The `pmpnum` value can be set to override locked SPMP entries. For example, if `SPMP[0]` is locked, M-mode software can still increment `pmpnum`.
+. As `pmpnum` is reconfigured, SPMP entries with the largest indices change. 
+For instance, raising `pmpnum` from N to N+2 truncates SPMP and spmpen ranges from `SPMP[0..63-N]`, `spmpen[0..63-N]` to `SPMP[0..61-N]`, `spmpen[0..61-N]`.
+Conversely, reducing `pmpnum` from N+2 to N expands SPMP and spmpen ranges from `SPMP[0..61-N]`, `spmpen[0..61-N]` to `SPMP[0..63-N]`, `spmpen[0..63-N]`.
 
 [NOTE]
 ====
@@ -77,8 +80,8 @@ The `mireg3` through `mireg6` are reserved.
 [#norm:csrfld:spmpcfg:L:clear_via_miselect]#The lock bit (`spmpcfg[i].L`) of an SPMP entry can only be cleared by M-mode through an indirect access using `miselect`.#
 
 The view provided by `miselect` is identical to that of `siselect` (see <<access-method>>).
-For instance, if 48 out of 64 entries are delegated, both S-mode (via `siselect` indices 0-47) and M-mode (via `siselect` or `miselect` indices 0-47) can access `SPMP[0..47]`.
-Any access attempt by either mode to an index outside this range (i.e., `i >= 48`) results in a read of zero, and writes are ignored.
+For instance, if N (asciimath:[N \le 64]) out of 64 entries are delegated, both S-mode (via `siselect` indices 0..N-1) and M-mode (via `siselect` or `miselect` indices 0..N-1) can access `SPMP[0..N-1]`.
+Any access attempt by either mode to an index outside this range (i.e., `asciimath:[i \ge N]`) results in a read of zero, and writes are ignored.
 
 
 [cols="^1,^2",stripes=even, options="header"]
