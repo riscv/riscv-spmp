@@ -57,6 +57,9 @@ Its lower 8 bits are an alias for the 8-bit field in the corresponding M-mode PM
 . [#norm:csrfld:mpmpdeleg:pmpnum:locked_pmp_constraint]#The `pmpnum` value cannot be set to an index that is less than or equal to that of any locked PMP entry.
 For instance, if `PMP[7]` is locked, any attempt to write a value less than 8 to `pmpnum` is ignored, and the field retains its prior value.#
 . The `pmpnum` value can be set to override locked SPMP entries. For example, if `SPMP[0]` is locked, M-mode software can still increment `pmpnum`.
+. As `pmpnum` is reconfigured, SPMP entries with the largest indices change. 
+For instance, raising `pmpnum` from N to N+2 truncates SPMP and spmpen ranges from `SPMP[0..63-N]`, `spmpen[0..63-N]` to `SPMP[0..61-N]`, `spmpen[0..61-N]`.
+Conversely, reducing `pmpnum` from N+2 to N expands SPMP and spmpen ranges from `SPMP[0..61-N]`, `spmpen[0..61-N]` to `SPMP[0..63-N]`, `spmpen[0..63-N]`.
 
 [NOTE]
 ====
