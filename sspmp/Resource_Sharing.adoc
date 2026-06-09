@@ -80,7 +80,8 @@ The `mireg3` through `mireg6` are reserved.
 [#norm:csrfld:spmpcfg:L:clear_via_miselect]#The lock bit (`spmpcfg[i].L`) of an SPMP entry can only be cleared by M-mode through an indirect access using `miselect`.#
 
 The view provided by `miselect` is identical to that of `siselect` (see <<access-method>>).
-For instance, if N (asciimath:[N \le 64]) out of 64 entries are delegated, both S-mode (via `siselect` indices 0..N-1) and M-mode (via `siselect` or `miselect` indices 0..N-1) can access `SPMP[0..N-1]`.
+For instance, if N (asciimath:[N \le 64]) out of 64 entries are delegated, 
+`SPMP[0..N-1]` is accessed by writing `0x100+i` to the corresponding `xiselect` register (`siselect` for S-mode, `siselect` and `miselect` for M-mode), where `i` represents the entry index (asciimath:[0 \le i \le N-1]).
 Any access attempt by either mode to an index outside this range (i.e., `asciimath:[i \ge N]`) results in a read of zero, and writes are ignored.
 
 
