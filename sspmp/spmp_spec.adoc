@@ -242,7 +242,8 @@ Each value of `siselect` maps to a corresponding set of SPMP CSRs.
 The registers `sireg3` through `sireg6` are reserved.
 
 SPMP entries are indexed starting from zero.
-In a system with 48 SPMP entries, for example, S-mode can address `SPMP[0..47]` using `siselect#0..47`.
+For instance, in a system with N SPMP entries (asciimath:[N \le 64]), 
+`SPMP[0..N-1]` is accessed by writing `0x100+i` to the `siselect` register, where `i` represents the entry index (asciimath:[0 \le i \le N-1]).
 [#norm:csr:siselect:oob_read_zero]#An access to an out-of-bounds index via `siselect` will return zero on read# and [#norm:csr:siselect:oob_write_ignored]#be ignored on write.#
 
 
