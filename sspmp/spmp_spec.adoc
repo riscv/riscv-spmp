@@ -239,7 +239,7 @@ The following table dictates which isolation mechanism is active based on the sa
 === The Access Method for SPMP CSRs in S-mode
 Each value of `siselect` maps to a corresponding set of SPMP CSRs.
 [#norm:csr:siselect:spmpaddr_mapping]#`sireg` is used to access the `spmpaddr` register,# while [#norm:csr:siselect:spmpcfg_mapping]#`sireg2` is used for the `spmpcfg` register.#
-The registers `sireg3` through `sireg6` are reserved.
+The registers `sireg3` through `sireg6` are reserved (i.e., reads return zero, writes are ignored).
 
 SPMP entries are indexed starting from zero.
 For instance, in a system with N SPMP entries (asciimath:[N \le 64]), 
