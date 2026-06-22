@@ -75,7 +75,7 @@ PMP entries are accessed directly through their dedicated CSRs (i.e., `pmpcfg` a
 Delegated SPMP entries, however, are accessed indirectly using the `xiselect` CSR (i.e., `siselect` and `miselect`).
 
 [#norm:csr:miselect:spmp_access]#For these indirect accesses, `miselect` selects the target SPMP entry, `mireg` accesses its `spmpaddr` register, and `mireg2` accesses its `spmpcfg` register.#
-The `mireg3` through `mireg6` are reserved.
+The `mireg3` through `mireg6` are reserved (i.e., reads return zero, writes are ignored).
 
 [#norm:csrfld:spmpcfg:L:clear_via_miselect]#The lock bit (`spmpcfg[i].L`) of an SPMP entry can only be cleared by M-mode through an indirect access using `miselect`.#
 
