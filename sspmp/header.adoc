@@ -1,8 +1,8 @@
 [[header]]
 :description: RISC-V S-level Physical Memory Protection (Sspmp)
 :company: RISC-V.org
-:revdate: 6/2026
-:revnumber: 0.9.1
+:revdate: 7/2026
+:revnumber: 0.9.2
 :revremark: This document is in the Frozen state. Changes are highly unlikely. A high threshold will be applied, and modifications will only be made in response to critical issues. Any other proposed changes should be addressed through a follow-on extension.
 :url-riscv: http://riscv.org
 :doctype: book
