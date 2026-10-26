@@ -1,5 +1,5 @@
 [[intro]]
 == Introduction
 
-The RISC-V S-mode Physical Memory Protection (SPMP) for Hypervisor integrates the SPMP and Hypervisor extensions by providing a two-stage SPMP. It introduces vSPMP, a first-stage SPMP, in control of VS-mode allowing a guest supervisor to specify memory protection policies within its guest physical address space. Guest VS/VU-mode accesses are further checked by the SPMP as defined by the "Supervisor-Level PMP Extensions, Version 1.0" .
+The RISC-V S-level Physical Memory Protection (SPMP) for Hypervisor integrates the SPMP and Hypervisor extensions by providing a two-stage SPMP. It introduces vSPMP, a first-stage SPMP, in control of VS-mode allowing a guest supervisor to specify memory protection policies within its guest physical address space. Guest VS/VU-mode accesses are further checked by the SPMP as defined by the RISC-V S-level Physical Memory Protection (SPMP) specification, Version 1.0.
 
