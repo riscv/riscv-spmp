@@ -34,7 +34,7 @@ endif::[]
 :xrefstyle: short
 
 = RISC-V S-level Physical Memory Protection for Hypervisor
-Editor - Bicheng Yang and José Martins
+Editor - José Martins and Bicheng Yang
 
 // Preamble
 [WARNING]

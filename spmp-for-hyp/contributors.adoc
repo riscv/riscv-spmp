@@ -15,8 +15,9 @@ The following individuals have contributed, directly or indirectly, to the propo
 * Radim Krčmář
 * Kajetan Nürnberger
 * Sandro Pinto
-* Manuel Rodriguez
+* Manuel Rodríguez
 * Thomas Roecker
+* Bruno Sá
 * Peter Vrabel
 * Harry Wagstaff
 * Yubin Xia
