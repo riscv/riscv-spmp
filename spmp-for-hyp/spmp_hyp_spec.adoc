@@ -101,59 +101,128 @@ When `hstatus.VTVM` is set and `V=1`, attempts to access `vspmpen` through the `
 
 == "Sshspmpdeleg" Extension for Sharing Hardware Resources between SPMP and vSPMP
 
-=== Extension Dependencies
+The vSPMP registers are architectural replicas of the SPMP registers, sharing their layout and address-matching logic, which makes hardware reuse between the two a practical approach for resource conservation. This chapter introduces the `Sshspmpdeleg` extension, a mechanism that allows the hypervisor to dynamically allocate the entries delegated to it between the SPMP and the vSPMP. This extension is mandatory for implementations that support `Ssvspmp`.
 
-. The `Sshspmpdeleg` is dependent on `Ssvspmp` and `Smpmpdeleg`.
+[NOTE]
+====
+In practice, the split between the SPMP and the vSPMP is expected to be mostly static: either hardwired by the implementation, or set by software during system initialization and configuration, rather than changed dynamically at runtime. Runtime reconfiguration remains possible, subject to the software coordination described in <<m-mode-sharing>>.
+====
 
+[[sshspmpdeleg-sharing]]
 === Resource Sharing between SPMP and vSPMP
 
-With this extension the hypervisor can delegate entries from SPMP to vSPMP. For this, it introduces a new WARL HSXLEN-bit HS-mode CSR named `hspmpdeleg`, whose layout is detailed in <<hspmpdeleg_format_rv64>>. This CSR with the same functionality of `mpmpdeleg`, but for delegating SPMP entries to vSPMP.
-Any PMP entry with an index greater than or equal to `mpmpdeleg.pmpnum` + `hspmpdeleg.pmpnum` is delegated to the vSPMP. For example, if the number of implemented PMP entries is 48, `mpmpdeleg.pmpnum` is set to 8, and `hspmpdeleg.pmpnum` is set to 16, PMP entries 24 to 47 are delegated to the vSPMP.
-
+The `Sshspmpdeleg` extension introduces a new HSXLEN-bit HS-mode CSR named `hspmpdeleg`, whose layout is detailed in <<hspmpdeleg_format_rv64>>. The `hspmpdeleg.pmpnum` WARL field defines the number of SPMP entries reserved for hypervisor use. All SPMP entries with an index greater than or equal to `hspmpdeleg.pmpnum` are delegated to vSPMP.
 
 [[hspmpdeleg_format_rv64]]
 .hspmpdeleg CSR format.
 include::images/bytefield/hspmpdeleg_format_rv64.adoc[]
 
-If  either `mpmpdeleg.pmpnum`  or `hspmpdeleg.pmpnum` is written with a value such that `mpmpdeleg.pmpnum` + `hspmpdeleg.pmpnum` is equal
-to or greater than the number of implemented PMP entries, `hspmpdeleg.pmpnum` will read back as the number of remaining SPMP entries. For example, if the number of implemented PMP entries is 32, `mpmpdeleg.pmpnum` is set to 16, and then `hspmpdeleg.pmpnum` is written a value of 32, the field will read back as 16. Or if initially,
-`mpmpdeleg.pmpnum` is set to 8, `hspmpdeleg.pmpnum` to 20 and then `mpmpdeleg.pmpnum` is written 16, `hspmpdeleg.pmpnum` is updated to 16. In the extreme, if `mpmpdeleg.pmpnum` is set to 32, `hspmpdeleg.pmpnum` must be updated to 0.
-
-`hspmpdeleg.pmpnum` must be set to a value larger than the index of any locked SPMP entry. For example, if `SPMP[7]` is locked, `hspmpdeleg.pmpnum` must be no less than 8. `hspmpdeleg.pmpnum` is allowed to be updated to a value less than or equal to the index of any locked SPMP entry only due to a write to `mpmpdeleg.pmpnum`.
-
-`hspmpdeleg.pmpnum` can be hardwired to allow an implementation to fix the SPMP/vSPMP split only if `mpmpdeleg.pmpnum` is also hardwired.
-
-This extension allows for the number of implemented PMP entries to be greater than 64 and up to a maximum of 192.
-If the number of implemented entries is greater than 64, unless hardwired, `mpmpdeleg.pmpnum` reset value is 64, and `hspmpdeleg.pmpnum` is set to the value of the remaining entries available to the SPMP. For example, if the total number of entries is 96, `hspmpdeleg.pmpnum` reset value is 32.
+This extension allows for the total number of implemented entries across PMP, SPMP, and vSPMP to be greater than 64 and up to a maximum of 192.
 
 [NOTE]
 ====
-The limit of 192 for implemented PMP entries stems from the fact that this is the maximum number of addressable entries: 64 addressable for the vSPMP, 64 for the SPMP, plus 64 for PMP. If more PMP entries were implemented, software would have no way to address and access such entries.
+The limit of 192 stems from the maximum number of addressable entries across all three levels: 64 for PMP, 64 for SPMP, and 64 for vSPMP.
+====
+
+If a write to `hspmpdeleg.pmpnum` specifies a value exceeding the number of SPMP entries provided by the HEE, the field subsequently reads back that total count. In such a case, no entries are delegated to vSPMP.
+
+If no entries are delegated to the vSPMP, the `Ssvspmp` extension is effectively disabled.
+
+[NOTE]
+====
+The vSPMP can be effectively disabled by setting `hspmpdeleg.pmpnum` to the total number of SPMP entries provided by the HEE.
 ====
 
 [NOTE]
 ====
-The vSPMP can be effectively disabled by setting `hspmpdeleg.pmpnum` to the maximum possible value. If, for example, 96 entries are implemented, and `mpmdeleg.pmpnum` is set to 32, the vSPMP is disabled by setting `hspmpdeleg.pmpnum` to 64. In the extreme case, when all 192 entries are implemented, and `mpmpdeleg.pmpnum` is set to zero,
-HS-mode can disable vSPMP by setting `hspmpdeleg.pmpnum` to 192.
+The `hspmpdeleg.pmpnum` field is a WARL field, which allows an implementation to hardwire the partition between SPMP and vSPMP.
 ====
 
+vSPMP entries are numbered contiguously, with `vSPMP[0]` selected by the lowest `vsiselect` value, `0x100`.
+`SPMP[hspmpdeleg.pmpnum]` through `SPMP[N-1]` map to `vSPMP[0]` through `vSPMP[N-1-hspmpdeleg.pmpnum]`, where N is the total number of SPMP entries provided by the HEE.
+For instance, given 32 SPMP entries provided by the HEE and `hspmpdeleg.pmpnum` set to 16, `SPMP[16]` to `SPMP[31]` map to `vSPMP[0]` to `vSPMP[15]`.
+A read of a vSPMP entry with an index beyond the delegated range returns 0, and a write to such an entry is ignored.
+Bits of `spmpen`, `hspmpen`, and `vspmpen` beyond the current SPMP and vSPMP ranges read as zero, and writes to them are ignored.
 
-*Addressing:*
+Only the lowest 64 delegated entries are addressable through the vSPMP CSRs. Any additional delegated entries are not addressable and are therefore inert, as defined in <<mpmpdeleg-ext>>. Similarly, if more than 64 entries are reserved for SPMP (i.e., `hspmpdeleg.pmpnum` > 64), only the lowest 64 are addressable through the SPMP CSRs, and the remaining reserved entries are inert. These limits apply to each view separately, so no entry is lost as long as no view is assigned more than 64 entries. The split among the PMP, the SPMP, and the vSPMP is described in <<m-mode-sharing>>.
 
-vSPMP entries will be supported contiguously and begin with the lowest vSPMP indirect CSR number.
-For instance, given an implementation with a total of 48 PMP entries, if `mpmpdeleg.pmpnum` is set to 16, and `hspmpdeleg.pmpnum` to 16, 
-`PMP entry[32]` to `PMP entry[47]` would map to `vSPMP[0]` to `vSPMP[15]`.
-A read of an out-of-index vSPMP entry (in the previous example, starting with `vSPMP[16]`) will return 0, and a write to such a vSPMP entry will be ignored.
+Writes to `hspmpdeleg` are ordered with respect to subsequent indirect accesses to SPMP and vSPMP entries, which use the new mapping, and to subsequent accesses to `spmpen`, `hspmpen`, and `vspmpen`. They are not ordered with respect to subsequent memory accesses. Before resuming execution that depends on the new allocation, software must execute the fence instructions required for SPMP CSR writes, as defined by `Sspmp`, and for vSPMP CSR writes, as defined in <<vspmp_access_method>>.
 
-Indirect accesses to vSPMP CSRs are not ordered with respect to each other or with subsequent memory accesses. To enforce ordering for subsequent accesses whose effective privilege mode is VS or VU, upon access to vSPMP CSRs, M- and HS-mode software must execute an HFENCE.VVMA instruction with `rs1=x0` and `rs2=x0`.
+The `hspmpdeleg.pmpnum` value cannot be set to an index that is less than or equal to that of any locked addressable SPMP entry. For example, if `SPMP[7]` is locked, any attempt to write a value less than 8 to `hspmpdeleg.pmpnum` is ignored, and the field retains its prior value.
+
+The `hspmpdeleg.pmpnum` value can be set to override locked vSPMP entries. For example, if `vSPMP[0]` is locked, HS-mode software can still increment `hspmpdeleg.pmpnum`.
 
 [NOTE]
 ====
-If `mpmpdeleg.pmpnum` + `hspmpdeleg.pmpnum` is configured such that more than 64 entries are delegated to vSPMP, only the lowest 64 delegated entries are addressable through the vSPMP CSRs. Any additional delegated entries are architecturally inaccessible and have no effect on memory protection.
-For example, if the number of implemented PMP entries is 128, `mpmpdeleg.pmpnum` is set to 16, and `hspmpdeleg.pmpnum` is set to 16, `PMP entry[32]` to `PMP entry[95]` would map to `vSPMP[0]` to `vSPMP[63]`, and `PMP entry[96]` to `PMP entry[127]` fall outside the vSPMP addressable range and therefore and have no effect on memory protection.
+Moving a locked SPMP entry into the vSPMP would remove its rule from the SPMP stage and would allow HS-mode to clear its lock through `vsiselect`, defeating the lock. Only a more privileged level, M-mode through `mpmpdeleg`, may change the role of a locked SPMP entry.
 ====
 
-This extension is mandatory if `Ssvspmp` is implemented.
+== "Smhspmpdeleg" Extension for M-mode Support of vSPMP Resource Sharing
+
+With `Sshspmpdeleg`, the entries delegated by M-mode are further divided between the SPMP and the vSPMP, so that a single pool of hardware entries serves three protection levels. This chapter introduces the `Smhspmpdeleg` extension, which extends `mpmpdeleg` to address pools larger than the 64 entries of the base `Smpmpdeleg` extension and defines how the M-mode and HS-mode allocations interact. This extension is mandatory for implementations that support `Sshspmpdeleg` in conjunction with M-mode (i.e., Sm1p13).
+
+[[mpmpdeleg-ext]]
+=== Extension to `mpmpdeleg`
+
+When `Smhspmpdeleg` is implemented, `mpmpdeleg` gains an `ext` enable bit at bit 8 and extends `pmpnum` to 8 bits. Bits 7 and 8 were previously reserved (WPRI) in `Smpmpdeleg`. The extended layout is shown in <<mpmpdeleg_ext_format>>.
+
+[[mpmpdeleg_ext_format]]
+.Extended mpmpdeleg CSR format.
+include::images/bytefield/mpmpdeleg_ext_format.adoc[]
+
+The implemented entries are the entries provided by the hardware, numbered contiguously from 0 to N-1, where N is at most 192. If N is greater than 64, entries 0 to 63 are all implemented. The writable PMP entries, as defined by the base `Smpmpdeleg` extension, are the implemented entries that can be delegated: the implemented entries with index below 64 when `ext` is clear, and all implemented entries when `ext` is set.
+
+An entry is addressable when it can be accessed through the PMP, SPMP, or vSPMP CSRs. Which entries are addressable depends on `ext` and on the current values of `mpmpdeleg.pmpnum` and `hspmpdeleg.pmpnum`. Implemented entries that are not writable, and writable entries that are not addressable, are inert: they perform no checks, have no effect on memory protection, and retain their register contents.
+
+When `ext` is clear (the reset state), the base `Smpmpdeleg` rules apply unchanged: bit 7 of `pmpnum` is read-only zero, and `pmpnum` is capped at the number of writable PMP entries, which is at most 64. Implemented entries with index 64 and above are not writable, are not delegated to any level, and are therefore inert. When `ext` is set, bit 7 of `pmpnum` becomes writable and `pmpnum` is capped at the number of writable PMP entries, which is then N, so that any implemented entry can be delegated, subject to the limit of 64 addressable entries per view described in <<sshspmpdeleg-sharing>>. In both cases, a write to `pmpnum` of a value exceeding its cap causes the field to read back the cap.
+
+Once set, `ext` cannot be cleared until reset. A write that sets `ext` takes effect together with the `pmpnum` value written by the same instruction, and that value is validated against the new `ext` setting. Setting `ext` makes the implemented entries with index 64 and above writable. They are assigned roles according to `mpmpdeleg.pmpnum` and `hspmpdeleg.pmpnum` as described in <<m-mode-sharing>>.
+
+The `ext` bit is writable regardless of the number of implemented entries. When 64 or fewer entries are implemented, setting `ext` has no effect.
+
+[NOTE%unbreakable]
+====
+The base `Smpmpdeleg` defines `pmpnum` as 7 bits, sufficient to represent values up to 127 and cover the 64-entry base case. `Smhspmpdeleg` raises the total entry count to up to 192, which cannot be represented in 7 bits. Extending `pmpnum` to 8 bits (max 255) allows M-mode to set `mpmpdeleg.pmpnum` equal to the total number of implemented entries, thereby delegating nothing to SPMP and effectively disabling both SPMP and vSPMP. Without this extension, M-mode would be unable to reclaim all entries as PMP when more than 64 entries are implemented.
+
+Because `ext` resets to 0 and software compliant with `Smpmpdeleg` preserves WPRI bits on write, existing M-mode software unaware of `Smhspmpdeleg` will always observe `pmpnum` behave as a 7-bit field. Setting `ext` requires explicit action by `Smhspmpdeleg`-aware software.
+====
+
+[[m-mode-sharing]]
+=== M-mode Support for Hypervisor/Guest SPMP Resource Sharing
+
+When both `Smpmpdeleg` and `Sshspmpdeleg` are implemented, the available hardware entries are divided three ways between PMP, SPMP, and vSPMP. The `mpmpdeleg.pmpnum` field defines the PMP/SPMP boundary, and `hspmpdeleg.pmpnum` further divides the SPMP entries between hypervisor and guest use. Any entry with an index greater than or equal to `mpmpdeleg.pmpnum` + `hspmpdeleg.pmpnum` is delegated to the vSPMP. For example, if the number of implemented entries is 48, `mpmpdeleg.pmpnum` is set to 8, and `hspmpdeleg.pmpnum` is set to 16, entries 24 to 47 are delegated to the vSPMP.
+
+The M-mode allocation always takes precedence over the HS-mode allocation. If a write to `hspmpdeleg.pmpnum` makes `mpmpdeleg.pmpnum` + `hspmpdeleg.pmpnum` greater than the number of writable PMP entries, the field reads back as the number of remaining entries. A write to `mpmpdeleg` updates `hspmpdeleg.pmpnum` so that the sum `mpmpdeleg.pmpnum` + `hspmpdeleg.pmpnum` is unchanged, which preserves the entries already delegated to the vSPMP and their indices. If the new `mpmpdeleg.pmpnum` is greater than the previous sum, `hspmpdeleg.pmpnum` keeps its previous value instead. In either case, `hspmpdeleg.pmpnum` is capped at the number of remaining entries. For example, if the number of implemented entries is 32, `mpmpdeleg.pmpnum` is set to 16, and then `hspmpdeleg.pmpnum` is written a value of 32, the field will read back as 16. If `mpmpdeleg.pmpnum` is set to 8 and `hspmpdeleg.pmpnum` to 20, and then `mpmpdeleg.pmpnum` is written 16, `hspmpdeleg.pmpnum` is updated to 12, and entries 28 to 31 remain delegated to the vSPMP. If `mpmpdeleg.pmpnum` is then written 30, `hspmpdeleg.pmpnum` is updated to 2, and no entries remain delegated to the vSPMP. From the reset state, a write of 0 to `mpmpdeleg.pmpnum` updates `hspmpdeleg.pmpnum` to 32, delegating all entries to the SPMP.
+
+Unless hardwired, `mpmpdeleg.pmpnum` resets to the total number of writable PMP entries, so that no entries are delegated to the SPMP at reset, and `hspmpdeleg.pmpnum` resets to 0.
+
+`hspmpdeleg.pmpnum` may only be hardwired if `mpmpdeleg.pmpnum` is also hardwired.
+
+With the three-way split in place, entries are assigned contiguously to the PMP starting from the lowest index, followed by the SPMP, then the vSPMP. For example, given 48 implemented entries, if `mpmpdeleg.pmpnum` is set to 16 and `hspmpdeleg.pmpnum` to 16, entries 32 to 47 map to `vSPMP[0]` to `vSPMP[15]`.
+
+If more than 64 entries are reserved for PMP (i.e., `mpmpdeleg.pmpnum` > 64), only the lowest 64 are addressable through the PMP CSRs, and the remaining reserved entries are inert. The corresponding rule for the SPMP and vSPMP is given in <<sshspmpdeleg-sharing>>. For example, if the number of implemented entries is 128, `mpmpdeleg.pmpnum` is set to 16, and `hspmpdeleg.pmpnum` is set to 16, entries 32 to 95 map to `vSPMP[0]` to `vSPMP[63]`, and entries 96 to 127 are not addressable and are therefore inert. Setting `hspmpdeleg.pmpnum` to 48 instead yields 16 PMP, 48 SPMP, and 64 vSPMP entries, all of them addressable.
+
+*Reconfiguration of delegated entries:*
+
+At any given time, each implemented entry serves exactly one of three roles, determined by the two delegation fields: entries with index below `mpmpdeleg.pmpnum` serve as PMP, entries from `mpmpdeleg.pmpnum` up to but excluding `mpmpdeleg.pmpnum` + `hspmpdeleg.pmpnum` serve as SPMP, and the remaining entries serve as vSPMP. Writing either delegation field changes the role of the entries that cross a boundary.
+
+. `PMP[i]` is entry i, `SPMP[k]` is entry `mpmpdeleg.pmpnum` + k, and `vSPMP[j]` is entry `mpmpdeleg.pmpnum` + `hspmpdeleg.pmpnum` + j. As either field is reconfigured, the entries crossing a boundary change role, and the entries above it are reached at new indices within their roles, consistent with the reconfiguration rules of the base `Smpmpdeleg` extension. A change to `mpmpdeleg.pmpnum` alone keeps the vSPMP indices, unless the new value is greater than the previous `mpmpdeleg.pmpnum` + `hspmpdeleg.pmpnum`.
+. Raising `hspmpdeleg.pmpnum` from N to N+2 expands the SPMP range from `SPMP[0..N-1]` to `SPMP[0..N+1]`, the former `vSPMP[0]` and `vSPMP[1]` becoming `SPMP[N]` and `SPMP[N+1]`, and truncates the vSPMP range from `vSPMP[0..M-1-N]` to `vSPMP[0..M-3-N]`, where M is the number of entries delegated by `mpmpdeleg`. Reducing `hspmpdeleg.pmpnum` has the converse effect.
+. The `spmpen`, `hspmpen`, and `vspmpen` ranges truncate and expand together with their corresponding SPMP and vSPMP entry ranges.
+. Entries that change role retain their address register, configuration register, and enable bits, as their storage is shared across roles. An entry's `spmpen` and `vspmpen` bits share the same storage, and its `hspmpen` bit has separate storage.
+
+`hspmpdeleg.pmpnum` is allowed to be updated to a value less than or equal to the index of any locked SPMP entry only due to a write to `mpmpdeleg.pmpnum`.
+
+Writes to `mpmpdeleg`, including `ext`, are ordered with respect to subsequent accesses to PMP, SPMP, and vSPMP entries, which use the new mapping, and any resulting adjustment of `hspmpdeleg.pmpnum` takes effect together with the write. Such a write is also an implicit write to `hspmpdeleg`, and the ordering rules for writes to `hspmpdeleg` (see <<sshspmpdeleg-sharing>>) apply to it as well. Writes to `mpmpdeleg` are not ordered with respect to subsequent memory accesses. Before resuming execution that depends on the new allocation, software must execute the fence instructions required for PMP CSR writes, as defined by the Privileged Architecture, for SPMP CSR writes, as defined by `Sspmp`, and for vSPMP CSR writes, as defined in <<vspmp_access_method>>.
+
+[NOTE]
+====
+Because entries keep their contents across role changes, an entry programmed by one level would otherwise be enforced as a rule of another level as soon as the boundary moves. Software changing `mpmpdeleg` (including `ext`) or `hspmpdeleg` should quiesce the affected execution and memory accesses and perform the reconfiguration as a non-preemptible sequence, preserving the permissions of the reconfiguration code. Before the reallocation, software should disable the addressable affected entries by setting their `A` field to OFF, if not hardwired, or, when an enable mask is implemented, by clearing their enable bit, and clear their `L` bit where permitted. Entries that move to a higher privilege level are addressable by the level performing the reconfiguration beforehand, through the indirect access registers of the level they leave, so they can always be disabled at this point. After the reallocation, the responsible privilege level should configure the newly addressable or reassigned entries, correct the TOR ranges affected by renumbering, and complete the required synchronization before resuming the affected execution. Entries that become addressable only after the reallocation always belong to a lower privilege level than the one performing the reconfiguration, do not affect its execution, and are configured by the receiving level at this point.
+
+A write to `mpmpdeleg.pmpnum` can change the value of `hspmpdeleg.pmpnum` and the SPMP/vSPMP index mappings without any notification to HS-mode. It is the responsibility of M-mode software to coordinate such reconfigurations with the hypervisor, through a protocol outside the scope of this specification (for example, an SBI extension), and of HS-mode software to re-read `hspmpdeleg` after any M-mode reconfiguration it is aware of. Through this protocol, HS-mode relinquishes the affected entries and quiesces the affected guests before the reconfiguration takes place.
+
+Entries that M-mode releases by lowering `mpmpdeleg.pmpnum` are delegated to the SPMP. Since no entries are delegated to the vSPMP at reset, M-mode software unaware of `Sshspmpdeleg` thus delegates entries to HS-mode as with `Smpmpdeleg` alone. Setting `ext` without changing `mpmpdeleg.pmpnum` delegates the newly writable entries to the vSPMP. M-mode software that reserves them for the hypervisor is expected to write `hspmpdeleg.pmpnum` after `mpmpdeleg`, within the same non-preemptible reconfiguration sequence and before resuming affected execution.
+====
 
 == "Sshspmpen" Extension for Optimizing Context Switching of SPMP Hypervisor/Guest Entries
 
