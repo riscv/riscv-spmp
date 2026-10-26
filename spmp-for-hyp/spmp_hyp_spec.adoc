@@ -1,51 +1,84 @@
 == "Ssvspmp" Extension for VS-level Physical Memory Protection (vSPMP)
 
+The `Ssvspmp` extension introduces a new memory protection layer called Virtual SPMP (vSPMP), a replica of the SPMP placed under the control of VS-mode so that a guest can enforce memory protection within its own guest physical address space. Together with the SPMP, which keeps checking guest accesses under the control of HS-mode, it establishes a two-stage SPMP hierarchy whose checks logically precede those of PMP or ePMP, as shown in <<hpmp-arch>>. Where page-based virtual memory is implemented, either stage can be replaced by address translation when the corresponding translation mode is not `Bare`, as described in <<stage-matrix>>.
+
+[[hpmp-arch]]
+image::vspmp.png[title="Dual-Stage SPMP: logical path when vsatp.MODE and hgatp.MODE are Bare",align="center"]
+
 === Extension Dependencies
 
-. The `Ssvspmp` is dependent on the latest versions of Supervisor-Level ISA specification (Version 1.13), and Shbare (Version 1.0) at the time of writing.
-
-. The `Ssvspmp` is dependent on the "Sspmp" Extension for S-level Physical Memory Protection (SPMP).
+. The `Sspmp` extension, Version 1.0, must be implemented.
+. The `Shbare` extension must be implemented.
+. The `vsstatus.SUM` (permit Supervisor User Memory access) bit must be *writable*.
+. The `vsstatus.MXR` (Make eXecutable Readable) bit must be *writable*.
 
 === Virtual SPMP (vSPMP)
 
-The `Ssvspmp` extension introduces a new memory protection layer called Virtual SPMP (vSPMP). The vSPMP behaves analogously to the baseline SPMP but is under the control of VS-mode and applies to memory accesses originating from VS and VU modes. The vSPMP is active only when V = 1. Conceptually, this extension establishes a two-stage SPMP hierarchy, preceding any checks by PMP or ePMP (see <<hpmp-arch>>). From a logical perspective, when both `vsatp.MODE` and `hgatp.MODE` are set to Bare, memory accesses initiated by guest contexts (VS/VU) are subject to the following enforcement sequence: 
+The vSPMP behaves as the SPMP defined by `Sspmp`, with the following substitutions:
 
-. vSPMP check: If the access is permitted by vSPMP, then 
-+ 
-. SPMP check: The access must also be permitted by SPMP. 
+. It is under the control of VS-mode.
+. It enforces protection only for memory accesses whose effective privilege mode is VS or VU.
+. VS-mode accesses are subject to the rules `Sspmp` defines for S-mode accesses, and VU-mode accesses to those defined for U-mode accesses. The `vspmpcfg` registers use the permission encodings `Sspmp` defines for `spmpcfg`, with VS-mode in place of S-mode and VU-mode in place of U-mode.
+. `vsstatus.SUM` takes the role of `sstatus.SUM`.
+. `vsstatus.MXR` takes the role of `sstatus.MXR`.
 
-If the vSPMP check, or both the vSPMP and SPMP checks, deny a VS/VU access, a standard SPMP page-fault directed at VS-mode is triggered using page fault exception codes 12 (instruction), 13 (load), or 15 (store/AMO). If only the SPMP denies a VS/VU access, a fault directed at HS-mode is raised using guest page fault exception codes as defined by `Sspmp`. Implementations may perform vSPMP and SPMP checks in parallel, provided the overall enforcement behavior matches the sequential logic described above.
+For accesses with `V=1`, `vsstatus.MXR` affects only the vSPMP stage, whereas the HS-level `sstatus.MXR` affects both the vSPMP and the SPMP stages. In either case, MXR grants read permission to an explicit load only where the permission encoding of that stage grants execute permission to the privilege mode of the load.
 
-[[hpmp-arch]]
-image::vspmp.png[title="Dual-Stage SPMP",align="center"]
+The vSPMP is active when `vsatp.MODE` is `Bare`. When `vsatp.MODE` is not `Bare`, VS-stage address translation is in effect instead. Likewise, as defined by `Sspmp`, the SPMP checks accesses whose effective privilege mode is VS or VU only when `hgatp.MODE` is `Bare`. Otherwise, G-stage address translation is in effect instead. <<stage-matrix>> lists the resulting logical protection and translation path for every combination. When `V=0`, the vSPMP is never active and the base `Sspmp` rules apply.
 
-When `vsatp.MODE` is set to `Bare` but `hgatp.MODE` is not, the vSPMP check is logically followed by G-stage address translation. Implementations may perform the vSPMP check and G-stage translation in parallel.
+[[stage-matrix]]
+.Logical protection and translation path for accesses with `V=1`
+[cols="^1,^1,4", options="header,unbreakable"]
+|===
+|`vsatp.MODE` |`hgatp.MODE` |Path
+|Bare |Bare |vSPMP, then SPMP, then PMP
+|Bare |not Bare |vSPMP, then G-stage address translation, then PMP
+|not Bare |Bare |VS-stage address translation, then SPMP, then PMP
+|not Bare |not Bare |Two-stage address translation, then PMP
+|===
 
-When `vsatp.MODE` is not set to `Bare`, but `hgatp.MODE` is, the SPMP check logically occurs after the VS-stage address translation. In this scenario, the Guest Physical Address (GPA) produced by the VS-stage translation must be used as the input to the SPMP check. Consequently, parallel evaluation of VS-stage translation and SPMP enforcement is not possible unless speculative techniques are employed.
+[NOTE]
+====
+Implementations may perform the checks and translations of a row of <<stage-matrix>> in parallel, provided the overall logical behavior matches the order of that row.
+====
 
-The vSPMP is configured through a set of virtual supervisor indirect-access registers, which are architectural replicas of the standard SPMP registers. These include `vspmpaddr0`–`vspmpaddr63`, `vspmpcfg0`–`vspmpcfg63`. See <<vspmp_access_method>> for details on how these registers are accessed.
+If the vSPMP check, or both the vSPMP and SPMP checks, deny a VS/VU access, a page-fault exception (code 12, 13, or 15) is raised, as defined by `Sspmp`, and taken according to the standard delegation rules. If only the SPMP denies a VS/VU access, a guest-page-fault exception (code 20, 21, or 23) is raised, as defined by `Sspmp` for VS/VU accesses denied by the SPMP, and taken according to the standard delegation rules. Each row of <<stage-matrix>> lists the stages in order of increasing privilege level, and exceptions are prioritized accordingly: a denial by a stage takes priority over any exception of the stages that follow it in the same row. That is, when more than one stage denies an access, only the exception of the least privileged denying stage is reported.
+
+When the SPMP stage denies a VS/VU access, the resulting guest-page fault follows the standard reporting rules of the Privileged Architecture: `stval` (or `mtval`) is written with the faulting guest virtual address, `htval` (or `mtval2`) with either zero or the faulting guest physical address right-shifted by 2, and `htinst` (or `mtinst`) according to the rules for guest-page faults. When the vSPMP stage denies an access, the resulting page fault writes the faulting guest virtual address to `vstval`, `stval`, or `mtval`, according to the mode in which the trap is taken.
+
+Accesses performed by the hypervisor virtual-machine load and store instructions (HLV, HLVX, HSV), as well as M-mode explicit memory accesses with `mstatus.MPRV=1`, `mstatus.MPV=1`, and `mstatus.MPP` set to S or U, are performed as though `V=1` and thus have an effective privilege mode of VS or VU. They are therefore subject to the vSPMP and SPMP checks.
+
+For HLVX.HU and HLVX.WU, _execute_ permission takes the place of _read_ permission at the vSPMP and SPMP stages, as it does during address translation, and a denial raises the corresponding load exception.
+
+The vSPMP is configured through a set of virtual supervisor indirect-access registers, which are architectural replicas of the standard SPMP registers, with the same field layout and encodings, and with VSXLEN in place of SXLEN. These include `vspmpaddr0` through `vspmpaddr63` and `vspmpcfg0` through `vspmpcfg63`. See <<vspmp_access_method>> for details on how these registers are accessed.
 
 [[vspmp_access_method]]
 === Access Method for vSPMP registers
 
-Consistent with the behavior defined in Shbare and Sscsrind extensions, vSPMP registers can be accessed from M and HS-modes via the `vsiselect`/`vsiregX` and accesses to the original SPMP registers from VS-mode via `siselect`/`siregX` CSRs are transparently redirected to the corresponding virtual supervisor vSPMP registers. 
+Consistent with the behavior defined in the `Shbare` and `Sscsrind` extensions, M-mode and HS-mode access the vSPMP registers through the `vsiselect` and `vsireg*` CSRs. VS-mode accesses targeting the SPMP registers through the `siselect` and `sireg*` CSRs are transparently redirected to the corresponding vSPMP registers.
 
-Each `vsiselect` value selects one vSPMP entry. Indirect accesses via `vsireg` and `vsireg2` access that entry’s `vspmpaddr` and `vspmpcfg`, respectively. `vsireg3`, `vsireg4`, `vsireg5`, and `vsireg6` are read-only 0.
+Each `vsiselect` value selects one vSPMP entry, using the same index mapping defined for `siselect` in the base `Sspmp` extension: vSPMP entry `i` (asciimath:[0 \le i \le 63]) is selected by writing `0x100+i` to `vsiselect`. Indirect accesses via `vsireg` and `vsireg2` access that entry's `vspmpaddr` and `vspmpcfg`, respectively. The registers `vsireg3` through `vsireg6` are reserved.
 
 [cols="^1,^2",stripes=even, options="header"]
 |===
-|`vsiselect` number| indirect CSR access of `vsireg`
-|`vsiselect#0`|`vsireg` -> `vspmpaddr[0]`, `vsireg2` -> `vspmpcfg[0]`
-|`vsiselect#1`|`vsireg` -> `vspmpaddr[1]`, `vsireg2` -> `vspmpcfg[1]`
+|`vsiselect` value| indirect CSR access of `vsireg`
+|`0x100`|`vsireg` -> `vspmpaddr[0]`, `vsireg2` -> `vspmpcfg[0]`
+|`0x101`|`vsireg` -> `vspmpaddr[1]`, `vsireg2` -> `vspmpcfg[1]`
 |    ...     |    ...
-|`vsiselect#63`|`vsireg` -> `vspmpaddr[63]`, `vsireg2` -> `vspmpcfg[63]`
+|`0x13F`|`vsireg` -> `vspmpaddr[63]`, `vsireg2` -> `vspmpcfg[63]`
 |===
 
-Both M and HS-mode accesses via `vsireg2` CSRs, and VS-mode accesses via `sireg2` CSRs to the vSPMP `vspmpcfg` registers, can set `vspmpcfg[i].L` to lock a vSPMP entry. When V = 1, and `vspmpcfg[i].L` is set, writes to that entry are ignored. Only M and HS-mode writes via `vsireg2` can reset `vspmpcfg[i].L`.
+Both M and HS-mode accesses via `vsireg2` CSRs, and VS-mode accesses via `sireg2` CSRs to the vSPMP `vspmpcfg` registers, can set `vspmpcfg[i].L` to lock a vSPMP entry. VS-mode attempts to write to locked `vspmpcfg[i]` and `vspmpaddr[i]` registers using the `siselect` CSR are ignored. If `vspmpcfg[i].L` is set and `vspmpcfg[i].A` is set to TOR, VS-mode writes to the preceding `vspmpaddr[i-1]` via `siselect` are also ignored. The lock bit `vspmpcfg[i].L` of a vSPMP entry can only be cleared by M or HS-mode through an indirect access using `vsiselect`.
 
-When `hstatus.VTVM` is set and V = 1, any attempt to access vSPMP CSRs raises a virtual-instruction exception.
+When `hstatus.VTVM` is set and `V=1`, attempts to access `sireg*` (really `vsireg*`) while `siselect` (really `vsiselect`) holds a value in the range `0x100` to `0x13F` raise a virtual-instruction exception.
+`hstatus.VTVM` must be writable when `Ssvspmp` is implemented, even if `vsatp.MODE` is read-only `Bare`.
 
-Indirect accesses to vSPMP CSRs are not ordered with respect to each other or with subsequent memory accesses. To enforce ordering for subsequent accesses whose effective privilege mode is VS or VU, software must execute memory memory-management fence instructions. When V = 1, a `SFENCE.VMA`instruction is required as defined in the base `Sspmp` extension. When V = 0, M or HS mode software must execute an `HFENCE.VVMA` instruction with rs1=x0 and rs2=x0, which synchronizes subsequent memory accesses with all preceding vSPMP CSR writes.
+[NOTE]
+====
+Trapping VS-mode accesses to the vSPMP registers allows HS-mode software to emulate the vSPMP, for example to provide a guest with more entries than are delegated to the vSPMP.
+====
+
+Indirect accesses to vSPMP CSRs are not ordered with respect to each other or with subsequent memory accesses. To enforce ordering for subsequent accesses whose effective privilege mode is VS or VU, software must execute memory-management fence instructions. When `V=1`, an `SFENCE.VMA` instruction with `rs1=x0` and `rs2=x0` is required, as defined by `Sspmp`. When `V=0`, M or HS-mode software must execute an `HFENCE.VVMA` instruction with `rs1=x0` and `rs2=x0`, which synchronizes subsequent memory accesses with all preceding vSPMP CSR writes.
 
 == "Ssvspmpen" Extension for Optimizing Context Switching of vSPMP Entries
 
