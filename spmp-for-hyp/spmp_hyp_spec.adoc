@@ -226,23 +226,28 @@ Entries that M-mode releases by lowering `mpmpdeleg.pmpnum` are delegated to the
 
 == "Sshspmpen" Extension for Optimizing Context Switching of SPMP Hypervisor/Guest Entries
 
-=== Extension Dependencies
-
-. The `Sshspmpen` is dependent on `Sspmp`.
-
-=== Optimization for Context Switching of Hypervisor/Guest SPMP
-
-The `Sshspmpen` introduces additional CSRs:
+The `Sshspmpen` extension is an optional feature that provides separate enable masks for the SPMP entries applied to guest accesses. It depends on the `Sspmpen` and `Shbare` extensions. It introduces additional CSRs:
 
 * For RV64 architectures, it introduces a 64-bit WARL CSR, `hspmpen`.
 * For RV32 architectures, it introduces an additional 32-bit WARL CSR, `hspmpenh`, which serves as an alias for the upper 32 bits of the `hspmpen` register.
 
-When V = 1, these registers replace the function of `spmpen`. Specifically, when V = 1, an SPMP entry is considered active only if both its `spmpcfg[i].A` is set and the corresponding bit in `hspmpen` is set. When V = 0, the `hspmpen` register has no effect, and the baseline SPMP behavior applies as defined by `spmpen` alone.
+The `hspmpen` register takes effect only when enabled through the `HSPMPEN` bit of the `henvcfg` register (bit 58, provisional pending allocation). When `henvcfg.HSPMPEN` is clear (the reset state), `hspmpen` has no effect and `spmpen` governs the active SPMP entries regardless of V, as when `Sshspmpen` is not implemented. When `henvcfg.HSPMPEN` is set and `V=1`, `hspmpen` replaces the function of `spmpen`: an SPMP entry is considered active only if both its `spmpcfg[i].A` field is non-zero and the corresponding bit in `hspmpen` is set. When `V=0`, the `hspmpen` register has no effect, and only `spmpen` governs the active SPMP entries, as defined by `Sspmpen`. The `hspmpen` register is accessible regardless of `henvcfg.HSPMPEN`.
 
 When an entry `i` is locked, as indicated by `spmpcfg[i].L == 1`, bit `i` in `hspmpen` becomes read-only.
+When any SPMP entry is locked, any further modifications to `henvcfg.HSPMPEN` are ignored, so that locking an entry also fixes which enable mask governs it for accesses with `V=1`.
+
+The `hspmpen[i]` bit controls only whether SPMP entry `i` participates in address matching and enforcement for accesses with `V=1`. It does not control whether `spmpaddr[i]` or `spmpcfg[i]` is writable. Writes to the `hspmpen` CSR and to `henvcfg.HSPMPEN` are not ordered with respect to subsequent memory accesses. To enforce ordering for subsequent accesses whose effective privilege mode is VS or VU, software must execute an `HFENCE.GVMA` instruction with `rs1=x0` and `rs2=x0`, as defined by `Sspmp`.
 
 [NOTE]
 ====
-The rationale for providing a separate `hspmpen` register, rather than reusing `spmpen`, is that HS/U and VS/VU contexts conceptually occupy distinct address spaces, not merely different permission domains. This mirrors the baseline Hypervisor extension for page-based translation, where HS/U accesses use the page tables pointed to by `satp`, while VS/VU accesses are translated through a separate set of page tables defined by `hgatp`.
-Similarly, `spmpen` governs SPMP entries for the hypervisor’s own address space, while `hspmpen` controls the guest address space enforced by SPMP. This separation allows the hypervisor to manage its own and guest memory protection configurations independently.
+Because `HSPMPEN` resets to 0 and software unaware of `Sshspmpen` preserves reserved `henvcfg` bits on write, the presence of this extension does not change the behavior observed by hypervisors aware only of `Sspmp` and not of this extension. `hspmpen` takes effect only after explicit opt-in by `Sshspmpen`-aware software.
+====
+
+[NOTE]
+====
+The rationale for providing a separate `hspmpen` register, rather than reusing `spmpen`, is twofold.
+
+First, HS/U and VS/VU contexts conceptually occupy distinct address spaces, not merely different permission domains. This mirrors the Hypervisor extension for page-based translation, where HS/U accesses use the page tables pointed to by `satp`, while VS/VU accesses are translated through the separate VS-stage and G-stage page tables defined by `vsatp` and `hgatp`. Similarly, `spmpen` governs the SPMP entries protecting the hypervisor's own address space, while `hspmpen` controls those enforced on the guest address space, both selecting subsets of the same SPMP entries.
+
+Second, hardware selects between the two registers based on V, which makes transitions between virtualization modes both safe and free of CSR traffic. Upon a trap into HS-mode with `satp.MODE` set to `Bare`, the first instructions of the trap handler are already subject to SPMP checks with `V=0`. If the enable mask were shared, those instructions would be checked against the mask configured for the guest, forcing the hypervisor to keep a single mask valid for both virtualization modes and constraining how entries can be partitioned.
 ====
