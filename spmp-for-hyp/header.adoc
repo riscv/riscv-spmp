@@ -1,8 +1,8 @@
 [[header]]
-:description: RISC-V S-mode Physical Memory Protection for Hypervisor
+:description: RISC-V S-level Physical Memory Protection for Hypervisor
 :company: RISC-V.org
-:revdate: 10/2025
-:revnumber: 0.2
+:revdate: 09/2026
+:revnumber: 0.6
 :revremark: This document is in development. Assume everything can change. See http://riscv.org/spec-state for details.
 :url-riscv: http://riscv.org
 :doctype: book
@@ -17,9 +17,6 @@
 // needs to be changed? bug discussion started
 //:WaveDromEditorApp: app/wavedrom-editor.app
 :imagesoutdir: /outputs/images
-:bibtex-file: example.bib
-:bibtex-order: alphabetical
-:bibtex-style: apa
 :icons: font
 :lang: en
 :listing-caption: Listing
@@ -36,8 +33,8 @@ endif::[]
 :footnote:
 :xrefstyle: short
 
-= RISC-V S-mode Physical Memory Protection for Hypervisor
-Editor - Bicheng Yang and José Martins
+= RISC-V S-level Physical Memory Protection for Hypervisor
+Editor - José Martins and Bicheng Yang
 
 // Preamble
 [WARNING]
