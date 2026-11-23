@@ -128,6 +128,12 @@ normative_rule_definitions:
     tags: ["norm:spmpen_locked_readonly"]
 
   ##############################################
+  # Smpmpdeleg Section: Extension Dependencies
+  ##############################################
+  - name: mpmpdeleg_tvm_writable
+    tags: ["norm:mpmpdeleg_tvm_writable"]
+
+  ##############################################
   # Smpmpdeleg Section: Resource Sharing (mpmpdeleg)
   ##############################################
   - name: mpmpdeleg_pmpnum_field
